@@ -1,0 +1,47 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+              x:Class="third_year_project.Views.LevelSelectPage"
+			xmlns:vm="clr-namespace:third_year_project.ViewModels"
+			x:DataType="vm:LevelSelectViewModel"
+			Background="{StaticResource BlueBrush}">
+
+		<Grid RowDefinitions="2*,5*,2*" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+			<Border Grid.Row="0" Width="220" Margin="10">
+
+				<TextBlock Text="Level Select page" FontSize="20" HorizontalAlignment="Center"  Grid.Row="0" VerticalAlignment="Center"/>
+			</Border>
+			<StackPanel Orientation="Horizontal" Spacing="10" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+			<Button	 Height="30"
+					HorizontalContentAlignment="Center" VerticalContentAlignment="Bottom" Content="Level 1"
+					Command="{Binding LevelClick}" CommandParameter="1" Grid.Row="1" Grid.Column="1" Margin="5"/>
+			<Button	 Height="30" Margin="5"
+					HorizontalContentAlignment="Center" VerticalContentAlignment="Bottom" Content="Level 2"
+					Command="{Binding LevelClick}" CommandParameter="2" Grid.Row="1" Grid.Column="1"/>
+			<Button Height="30" HorizontalContentAlignment="Center"
+					VerticalContentAlignment="Bottom" Content="Level 3"
+					Command="{Binding LevelClick}" CommandParameter="3"
+					Grid.Row="1" Grid.Column="1" Margin="5"/>
+			<Button	Height="30" HorizontalContentAlignment="Center"
+					VerticalContentAlignment="Bottom" Content="Level 4"
+					Command="{Binding LevelClick}" CommandParameter="4"
+					Grid.Row="1" Grid.Column="1" Margin="5"/>
+			<Button	Height="30" HorizontalContentAlignment="Center"
+					VerticalContentAlignment="Bottom" Content="Level 5"
+					Command="{Binding LevelClick}" CommandParameter="5"
+					Grid.Row="1" Grid.Column="1" Margin="5"/>
+			</StackPanel>
+			<!-- those row definitions dont do anything -->
+
+				<Button
+					HorizontalAlignment="Center"
+					VerticalAlignment="Top"
+					HorizontalContentAlignment="Center"
+					Content="Back to homepage"
+					Command="{Binding HomeClick}"
+					Width="150" Height="35"
+					Grid.Row="2" Grid.Column="1" Margin="5"/>
+		</Grid>
+</UserControl>

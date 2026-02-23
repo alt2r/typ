@@ -1,0 +1,67 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="using:third_year_project"
+             xmlns:vm="using:third_year_project.ViewModels"
+             xmlns:views="using:third_year_project.Views"
+             x:Class="third_year_project.App"
+             RequestedThemeVariant="Default">
+
+    <Application.DataTemplates>
+        <DataTemplate DataType="vm:HomePageViewModel">
+            <views:HomePage />
+        </DataTemplate>
+
+        <DataTemplate DataType="vm:LearnPageViewModel">
+            <views:LearnPage />
+        </DataTemplate>
+
+		<DataTemplate DataType="vm:SandboxPageViewModel">
+			<views:SandboxPage />
+		</DataTemplate>
+
+		<DataTemplate DataType="vm:PracticePageViewModel">
+			<views:PracticePage />
+		</DataTemplate>
+
+		<DataTemplate DataType="vm:LevelSelectViewModel">
+			<views:LevelSelectPage />
+		</DataTemplate>
+
+		<DataTemplate DataType="vm:InfoPageViewModel">
+			<views:InfoPage />
+		</DataTemplate>
+
+		<DataTemplate DataType="vm:SettingsPageViewModel">
+			<views:SettingsPage />
+		</DataTemplate>
+
+    </Application.DataTemplates>
+	
+	<Application.Resources>
+		<ResourceDictionary>
+			<ResourceDictionary.MergedDictionaries>
+				<ResourceInclude Source="Styles\Colours.axaml"/>
+				<ResourceInclude Source="Styles\Fonts.axaml"/>
+			</ResourceDictionary.MergedDictionaries>
+		</ResourceDictionary>
+	</Application.Resources>
+
+	<Application.Styles>
+		<FluentTheme />
+
+		<Style Selector="Button">
+			<Setter Property="BorderBrush" Value="{StaticResource WhiteBrush}"/>
+			<Setter Property="BorderThickness" Value="2"/>
+			<Setter Property="Background" Value="{StaticResource YellowBrush}"/>
+		</Style>
+
+		<Style Selector="Border">
+			<Setter Property="BorderBrush" Value="{StaticResource WhiteBrush}"/>
+			<Setter Property="Background" Value="{StaticResource LightBlueBrush}"/>
+			<Setter Property="BorderThickness" Value="2"/>
+			<Setter Property="CornerRadius" Value="3"/>
+		</Style>
+		
+	</Application.Styles>
+
+</Application>

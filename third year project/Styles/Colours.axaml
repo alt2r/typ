@@ -1,0 +1,21 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+	<Color x:Key="PrimaryBlue">#001F3F</Color>
+	<Color x:Key="PrimaryGrey">#A9A9A9</Color>
+	<Color x:Key="PrimaryYellow">#FFD700</Color>
+	<Color x:Key="PrimaryLightBlue">#00BFFF</Color>
+	<Color x:Key="PrimaryRed">#8B0000</Color>
+
+
+	<SolidColorBrush x:Key="BlueBrush" Color="{StaticResource PrimaryBlue}"/>
+	<SolidColorBrush x:Key="GreyBrush" Color="{StaticResource PrimaryGrey}"/>
+	<SolidColorBrush x:Key="YellowBrush" Color="{StaticResource PrimaryYellow}"/>
+	<SolidColorBrush x:Key="LightBlueBrush" Color="{StaticResource PrimaryLightBlue}"/>
+	<SolidColorBrush x:Key="RedBrush" Color="{StaticResource PrimaryRed}"/>
+	<SolidColorBrush x:Key="BlackBrush" Color="#000000"/>
+	<SolidColorBrush x:Key="WhiteBrush" Color="#FFFFFF"/>
+	<!-- in case we want to tint black or white colours later on-->
+
+	
+</ResourceDictionary>

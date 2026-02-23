@@ -1,0 +1,92 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="third_year_project.Views.PracticePage"
+			 xmlns:vm="clr-namespace:third_year_project.ViewModels"
+			 x:DataType="vm:PracticePageViewModel"
+			 Focusable="True"
+			 
+			 Background="{StaticResource BlueBrush}">
+
+		<Grid RowDefinitions="1*,4*, 2*,1*">
+			<Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="2" CornerRadius="3" Background="{StaticResource AccentBrush1}" Grid.Row="0" Width="300" Margin="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+				<TextBlock Text="Practice page" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.Row="0"/>
+			</Border>
+			<!-- those row definitions dont do anything -->
+
+			<Grid ColumnDefinitions="1*, 1*, 1*, 1*" Grid.Row="1">
+				
+				<Button		Width="100" Height="30"
+					Margin="5"
+					HorizontalContentAlignment="Center"
+					VerticalContentAlignment="Bottom"
+						HorizontalAlignment="Center"
+					Content="Left"
+							Grid.Column="0"/>
+				
+			<Border Width="160"
+				Height="80"
+				Background="Gray"
+				BorderBrush="Black"
+				BorderThickness="2"
+					Grid.Column="1">
+				<StackPanel>
+					<TextBlock Text="Early" FontSize="16" VerticalAlignment="Top" HorizontalAlignment="Center" Foreground="Red" Name="LeftTopText"/>
+					<TextBlock Text="100ms" VerticalAlignment="Center" HorizontalAlignment="Center" Name="LeftBottomText"/>
+					<Grid x:Name="leftDisplay"
+						  Width="156"
+						  Height="40"
+						Background="Blue"
+					  ClipToBounds="True">
+					</Grid>
+				</StackPanel>
+				</Border>
+				
+			<Border Width="160"
+				Height="80"
+				Background="Gray"
+				BorderBrush="Black"
+				BorderThickness="2"
+					Grid.Column="2">
+
+				<StackPanel>
+					<TextBlock Text="Good" FontSize="16" VerticalAlignment="Top" HorizontalAlignment="Center" Foreground="Green"/>
+					<TextBlock Text="8ms" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+				</StackPanel>
+			</Border>
+
+				<Button		Width="100" Height="30"
+					Margin="5"
+					HorizontalContentAlignment="Center"
+					VerticalContentAlignment="Bottom"
+						HorizontalAlignment="Center"
+					Content="Right"
+							Grid.Column="3"/>
+			</Grid>
+
+			<Grid Margin="20" Grid.Row="2" ColumnDefinitions="1*, 1*, 1*">
+				<Border Grid.Column="0" Width="100" HorizontalAlignment="Right" Height="50" Margin="0, 0, 10, 0">
+					<StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+						<TextBlock Text="BPM: " HorizontalAlignment="Center" Background="{StaticResource LightBlueBrush}" FontSize="18"/>
+						<TextBlock Text="{Binding #bpmSlider.Value}" FontSize="18"
+									HorizontalAlignment="Center"  Background="{StaticResource LightBlueBrush}"/>
+					</StackPanel>
+				</Border>
+				<Slider x:Name="bpmSlider" Grid.Column="1"
+						Minimum="40" Maximum="200" TickFrequency="5"
+						IsSnapToTickEnabled="True" Value="{Binding BpmSliderValue, Mode=TwoWay}"
+						BorderBrush="{StaticResource WhiteBrush}" BorderThickness="2"
+						Height="50"/>
+			</Grid>
+
+			<Button		Width="150" Height="30"
+					HorizontalContentAlignment="Center"
+					VerticalContentAlignment="Bottom"
+						HorizontalAlignment="Center"
+					Content="Back to homepage"
+					Command="{Binding HomeClick}"
+						Grid.Row="3"/>
+		</Grid>
+</UserControl>

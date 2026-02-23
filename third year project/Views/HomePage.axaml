@@ -1,0 +1,75 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+			 
+             xmlns:vm="clr-namespace:third_year_project.ViewModels"
+             x:Class="third_year_project.Views.HomePage"
+             x:DataType="vm:HomePageViewModel"
+			 Background="{StaticResource BlueBrush}">
+	
+
+	<Design.DataContext>
+		<!-- This only sets the DataContext for the previewer in an IDE,
+             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+		<vm:HomePageViewModel/>
+	</Design.DataContext>
+	
+	
+	<!-- Button mesh -->
+	<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="20">
+		<Border>
+			<TextBlock Text="Polyrhythm Trainer X" FontSize="32" HorizontalAlignment="Center" TextAlignment="Center" Padding="10"
+					   FontFamily="{StaticResource PrimaryFontFamily}"/>
+		</Border>
+		
+		<Grid>
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="Auto"/>
+			<ColumnDefinition Width="Auto"/>
+		</Grid.ColumnDefinitions>
+
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+
+		<!-- Left big button -->
+		<Button
+				Width="150" Height="210" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+				Content="Learn" FontFamily="{StaticResource PrimaryFontFamily}"	Command="{Binding LearnClick}"
+				Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Margin="5"/>
+
+		<!-- Right top button -->
+			<Button
+					Width="200" Height="100" HorizontalContentAlignment="Center"
+					VerticalContentAlignment="Center" Content="Practice" Command="{Binding PracticeClick}"
+					Grid.Row="0" Grid.Column="1" Margin="5"/>
+
+		<!-- Right bottom button -->
+		<Button
+				Width="200" Height="100"
+				HorizontalContentAlignment="Center"
+				VerticalContentAlignment="Center"
+				Content="Sandbox Mode"
+				Command="{Binding SandboxClick}"
+				Grid.Row="1" Grid.Column="1" Margin="5"/>
+
+		<ContentControl x:Name="PageHost" Grid.Row="1"/>
+			
+			
+
+	</Grid>
+
+		<StackPanel Orientation="Horizontal"
+			   HorizontalAlignment="Right"
+			   VerticalAlignment="Bottom"
+			   Margin="0 0 16 16"
+			   Spacing="8">
+
+				<Button Content="Info" Command="{Binding InfoClick}"/>
+				<Button Content="Settings" Command="{Binding SettingsClick}"/>
+		</StackPanel>
+		</StackPanel>
+</UserControl>

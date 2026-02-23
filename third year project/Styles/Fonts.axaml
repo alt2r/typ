@@ -1,0 +1,12 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+
+	<!-- Multi-weight family -->
+	<FontFamily x:Key="PrimaryFontFamily">
+		Assets\Fonts\Roboto\static\Roboto-Black.ttf#
+		Assets\Fonts\Roboto\static\Roboto-Bold.ttf#
+		Assets\Fonts\Roboto\static\Roboto-Italic.ttf#
+	</FontFamily>
+
+</ResourceDictionary>

@@ -1,0 +1,26 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="third_year_project.Views.InfoPage"
+			 xmlns:vm="clr-namespace:third_year_project.ViewModels"
+			x:DataType="vm:InfoPageViewModel"
+			 Background="{StaticResource BlueBrush}">
+	
+	<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="20">
+
+
+		<Grid RowDefinitions="1*,4*,1*">
+			<TextBlock Text="info page" FontSize="20" HorizontalAlignment="Center"  Grid.Row="0"/>
+			<!-- those row definitions dont do anything -->
+
+			<Button		Width="150" Height="30"
+					Margin="5" Grid.Row="3"
+					HorizontalContentAlignment="Center"
+					VerticalContentAlignment="Bottom"
+					Content="Back to homepage"
+					Command="{Binding HomeClick}"/>
+		</Grid>
+	</StackPanel>
+</UserControl>
