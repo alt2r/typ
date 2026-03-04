@@ -7,19 +7,41 @@
 			 xmlns:vm="clr-namespace:third_year_project.ViewModels"
 			x:DataType="vm:SettingsPageViewModel"
 			 Background="{StaticResource BlueBrush}">
-	<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="20">
 
 
-		<Grid RowDefinitions="1*,4*,1*">
-			<TextBlock Text="Settings page" FontSize="20" HorizontalAlignment="Center"  Grid.Row="0"/>
-			<!-- those row definitions dont do anything -->
+	<Grid RowDefinitions="1*,5*,1*" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+		<Border Grid.Row="0" Width="220" Margin="10">
 
-			<Button		Width="150" Height="30"
-					Margin="5" Grid.Row="3"
-					HorizontalContentAlignment="Center"
-					VerticalContentAlignment="Bottom"
-					Content="Back to homepage"
-					Command="{Binding HomeClick}"/>
-		</Grid>
-	</StackPanel>
+			<TextBlock Text="Settings Page" FontSize="20" HorizontalAlignment="Center"  Grid.Row="0" VerticalAlignment="Center"/>
+		</Border>
+		<StackPanel Grid.Row="1" HorizontalAlignment="Center">
+			<StackPanel Orientation="Horizontal" Margin="5">
+				<Border Grid.Row="0" Width="220" Margin="10, 0, 10, 0" HorizontalAlignment="Center" VerticalAlignment="Center">
+				<TextBlock Text="Colour scheme:" FontSize="17" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+				</Border>
+			<ComboBox Width="200"
+          SelectedIndex="0">
+				<ComboBoxItem Content="Blue"/>
+				<ComboBoxItem Content="Dark"/>
+				<ComboBoxItem Content="Light"/>
+			</ComboBox>
+			</StackPanel>
+			<StackPanel Orientation="Horizontal" Margin="5">
+				<Border Grid.Row="0" Width="220" Margin="10, 0, 10, 0" HorizontalAlignment="Center" VerticalAlignment="Center">
+					<TextBlock Text="Audio volume:" FontSize="17" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+				</Border>
+				<Slider Minimum="0" Maximum="100" Width="200" TickFrequency="1"
+						IsSnapToTickEnabled="True" />
+			</StackPanel>
+		</StackPanel>
+
+		<Button
+			HorizontalAlignment="Left"
+			VerticalAlignment="Top"
+			HorizontalContentAlignment="Center"
+			Content="Back to homepage"
+			Command="{Binding HomeClick}"
+			Width="150" Height="35"
+			Grid.Row="2" Margin="5"/>
+	</Grid>
 </UserControl>

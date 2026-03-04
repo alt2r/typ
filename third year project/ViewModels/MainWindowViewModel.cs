@@ -26,7 +26,7 @@ namespace third_year_project.ViewModels
         public MainWindowViewModel()
         {
             CurrentPage = new HomePageViewModel(this);
-            SoundPlayer soundPlayer = new SoundPlayer(); //really great to set this up somewhere on load
+            SoundPlayer soundPlayer; //really great to set this up somewhere on load
 
         }
 

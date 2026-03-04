@@ -26,8 +26,9 @@
 					Content="Left"
 							Grid.Column="0"/>
 				
-			<Border Width="160"
-				Height="80"
+			<Border Width="200"
+					Margin="5"
+				Height="160"
 				Background="Gray"
 				BorderBrush="Black"
 				BorderThickness="2"
@@ -36,24 +37,31 @@
 					<TextBlock Text="Early" FontSize="16" VerticalAlignment="Top" HorizontalAlignment="Center" Foreground="Red" Name="LeftTopText"/>
 					<TextBlock Text="100ms" VerticalAlignment="Center" HorizontalAlignment="Center" Name="LeftBottomText"/>
 					<Grid x:Name="leftDisplay"
-						  Width="156"
-						  Height="40"
-						Background="Blue"
+						  Width="196"
+						  Height="120"
+						Background="{StaticResource LightBlueBrush}"
 					  ClipToBounds="True">
 					</Grid>
 				</StackPanel>
 				</Border>
 				
-			<Border Width="160"
-				Height="80"
+			<Border Width="200"
+					Margin="5"
+				Height="160"
 				Background="Gray"
 				BorderBrush="Black"
 				BorderThickness="2"
 					Grid.Column="2">
 
 				<StackPanel>
-					<TextBlock Text="Good" FontSize="16" VerticalAlignment="Top" HorizontalAlignment="Center" Foreground="Green"/>
-					<TextBlock Text="8ms" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+					<TextBlock Text="Good" FontSize="16" VerticalAlignment="Top" HorizontalAlignment="Center" Foreground="Green" Name="RightTopText"/>
+					<TextBlock Text="8ms" VerticalAlignment="Center" HorizontalAlignment="Center" Name="RightBottomText"/>
+					<Grid x:Name="rightDisplay"
+						  Width="196"
+						  Height="120"
+						Background="{StaticResource LightBlueBrush}"
+					  ClipToBounds="True">
+					</Grid>
 				</StackPanel>
 			</Border>
 
@@ -81,12 +89,13 @@
 						Height="50"/>
 			</Grid>
 
-			<Button		Width="150" Height="30"
-					HorizontalContentAlignment="Center"
-					VerticalContentAlignment="Bottom"
-						HorizontalAlignment="Center"
-					Content="Back to homepage"
-					Command="{Binding HomeClick}"
-						Grid.Row="3"/>
+			<Button
+				HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+				Content="Back to homepage" Command="{Binding HomeClick}"
+				HorizontalAlignment="Left" Width="150" Height="40" Grid.Row="3" Margin="10"/>
+
+			<Button Grid.Row="3" HorizontalAlignment="Right" Content="Learn This!" Margin="10"
+					Width="150" HorizontalContentAlignment="Center" Height="60"
+					VerticalContentAlignment="Center" Command="{Binding LearnClick}"/>
 		</Grid>
 </UserControl>

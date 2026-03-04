@@ -21,11 +21,17 @@ namespace third_year_project.ViewModels
 {
     internal class PracticePageViewModel : ReactiveObject
     {
-        SoundPlayer soundPlayer = SoundPlayer.instance;
+        SoundPlayer soundPlayer = SoundPlayer.Instance;
         Key leftKey = Key.A;
         Key rightKey = Key.L;
         const double LOOKAHEADSECONDS = 0.1; //basically we want to schedule sounds a bit in advance to avoid latency issues
         long startSample = 0;
+
+        Note leftPatternNote = Note.C4;
+        Note rightPatternNote = Note.F4;
+        public Note LeftPatternNote => leftPatternNote; //shorthand getter methods, something i discovered way too late into development lol
+        public Note RightPatternNote => rightPatternNote;
+
 
         int[] leftPattern;
         int[] rightPattern;
@@ -40,23 +46,8 @@ namespace third_year_project.ViewModels
         }
 
         public ReactiveCommand<Unit, Unit> HomeClick { get; }
+        public ReactiveCommand<Unit, Unit> LearnClick { get; }
 
-        //main constructor
-        public PracticePageViewModel(MainWindowViewModel mainWindowVM, int[] _leftPattern, int[] _rightpattern)
-        {
-            leftPattern = _leftPattern;
-            rightPattern = _rightpattern;
-
-            HomeClick = ReactiveCommand.Create(() =>
-            {
-                mainWindowVM.CurrentPage = new HomePageViewModel(mainWindowVM);
-            }, outputScheduler: AvaloniaScheduler.Instance);
-
-            constructorSetUp(mainWindowVM);
-
-        }
-
-        //constructor from learn page
         public PracticePageViewModel(MainWindowViewModel mainWindowVM, List<int[][]> rhythm)
         {
             leftPattern = rhythm[0][rhythm[0].Length - 2];
@@ -67,15 +58,15 @@ namespace third_year_project.ViewModels
                 mainWindowVM.CurrentPage = new HomePageViewModel(mainWindowVM);
             }, outputScheduler: AvaloniaScheduler.Instance);
 
-            constructorSetUp(mainWindowVM);
+            LearnClick = ReactiveCommand.Create(() =>
+            {
+                soundPlayer.Release(this);
+                mainWindowVM.CurrentPage = new LearnPageViewModel(mainWindowVM, rhythm);
+            }, outputScheduler: AvaloniaScheduler.Instance);
 
-
-        }
-
-        public void constructorSetUp(MainWindowViewModel mainWindowVM)
-        {
-            //StopBeepingCycles();
-            //StartBeepingCycles();
+            while (!soundPlayer.TryAcquire(this)) //this surely wont cause an infinite loop right? :clueless:
+            { Task.Delay(500); }
+            soundPlayer.Initialize(this);
 
             this.WhenAnyValue(x => x.BpmSliderValue)
             .Subscribe(val =>
@@ -87,35 +78,13 @@ namespace third_year_project.ViewModels
             });
         }
 
-        public async void delayedSoundPlayerInit()
-        {
-            await Task.Delay(200); //was happening too soon apparently
-            StartBeepingCycles();
-        }
-
 
         public void StartBeepingCycles()
         {
-            Console.WriteLine("starting in practice");
-            soundPlayer.Initialize();
-            foreach (var x in leftPattern)
-            {
-                Console.Write($"{x}, ");
-            }
-            Console.WriteLine();
-            foreach (var x in rightPattern)
-            {
-                Console.Write($"{x}, ");
-            }
-            Console.WriteLine();
-
-            //aight here we go
+            soundPlayer.TryAcquire(this);
+            soundPlayer.Initialize(this);
+            
             int totalBeats = leftPattern.Sum();
-            if(totalBeats != rightPattern.Sum())
-            {
-                Console.WriteLine("beat numbers dont match :( ");
-                //return;
-            }
             //so we are assuming that 1 is a 16th note at the bpm specified by bpm. meaning 4 is a a quarter. bpm is in minutes so 60000ms / bpm = ms per quarter note
             //this means we want to have beatMS = 60000 / bpm / 4 for a 16th note and then loop through each possible 16th note and add a note if its in the pattern
             //brain please start working again
@@ -145,8 +114,8 @@ namespace third_year_project.ViewModels
                 }
                 if (leftSixteenthNoteCounter == 0)
                 {
-                    long beatSample = startSample + soundPlayer.msToSample(leftBeatNumber * beatMs); //-100 because keyboard input delay? idk this might be wrong still
-                    soundPlayer.scheduleNote(beatSample, Note.C4);
+                    long beatSample = startSample + soundPlayer.msToSample(leftBeatNumber * beatMs);
+                    soundPlayer.scheduleNote(this, beatSample, leftPatternNote);
                     Console.WriteLine($"scheduling at {beatSample} and the current sample is {soundPlayer.getCurrentSample()}");
                 }
                 leftSixteenthNoteCounter++;
@@ -173,7 +142,7 @@ namespace third_year_project.ViewModels
                 {
                     long beatSample = startSample + soundPlayer.msToSample(rightBeatNumber * beatMs); //-100 because keyboard input delay? idk this might be wrong still
                    
-                    soundPlayer.scheduleNote(beatSample, Note.F4);
+                    soundPlayer.scheduleNote(this, beatSample, rightPatternNote);
                 }
                 rightSixteenthNoteCounter++;
                 rightBeatNumber++;
@@ -185,7 +154,7 @@ namespace third_year_project.ViewModels
         public void StopBeepingCycles()
         {
             Console.WriteLine("stopping in practice");
-            soundPlayer.Stop();
+            soundPlayer.Stop(this);
             if (leftTimer != null)
             {
                 leftTimer.Stop();
@@ -201,11 +170,17 @@ namespace third_year_project.ViewModels
         public void OnViewClosed()
         {
             StopBeepingCycles();
+            soundPlayer.Release(this);
         }
 
         public Key GetLeftKey()
         {
             return leftKey;
+        }
+
+        public Key GetRightKey()
+        {
+            return rightKey;
         }
 
         public double OnKeyDown(Key key)
@@ -215,7 +190,7 @@ namespace third_year_project.ViewModels
                 long currentSample = soundPlayer.getCurrentSample();
 
                 currentSample -= startSample;
-                double beatMs = (60000.0 / _bpmSliderValue) / 4;  //16th notes
+                double beatMs = (60000.0 / _bpmSliderValue) / 2;  //8th notes
                 long beatSamples = soundPlayer.msToSample(beatMs);
                 int totalBeats = leftPattern.Sum();
 
@@ -228,6 +203,38 @@ namespace third_year_project.ViewModels
                 for (int i = 0; i < leftPattern.Length; i++)
                 {
                     beatPlacements[i] = leftPattern[0..i].Sum() * beatSamples;
+                }
+                for (int i = 0; i < beatPlacements.Length; i++)
+                {
+                    if (Math.Abs(timeDiff) > Math.Abs(beatPlacements[i] - samplePositionInBar))
+                    {
+                        timeDiff = beatPlacements[i] - samplePositionInBar;
+                    }
+                }
+
+                double msLate = soundPlayer.sampleToMs(timeDiff);
+                //msLate -= 100; //correcting for delays
+                return Math.Round(msLate);
+            }
+
+            else if (key == rightKey)
+            {
+                long currentSample = soundPlayer.getCurrentSample();
+
+                currentSample -= startSample;
+                double beatMs = (60000.0 / _bpmSliderValue) / 2; 
+                long beatSamples = soundPlayer.msToSample(beatMs);
+                int totalBeats = rightPattern.Sum();
+
+                long samplePositionInBar = currentSample % (beatSamples * totalBeats);
+                long timeDiff = long.MaxValue;
+
+                int counter = 0;
+                int patternIndex = 0;
+                long[] beatPlacements = new long[rightPattern.Length];
+                for (int i = 0; i < rightPattern.Length; i++)
+                {
+                    beatPlacements[i] = rightPattern[0..i].Sum() * beatSamples;
                 }
                 for (int i = 0; i < beatPlacements.Length; i++)
                 {

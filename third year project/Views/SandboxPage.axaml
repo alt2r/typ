@@ -5,22 +5,43 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="third_year_project.Views.SandboxPage"
 			xmlns:vm="clr-namespace:third_year_project.ViewModels"
+			 xmlns:services="clr-namespace:third_year_project.Services"
 			x:DataType="vm:SandboxPageViewModel"
 			 Background="{StaticResource BlueBrush}">
 
-	<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="20">
+	<Grid RowDefinitions="1*,5*,1*" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+		<Border Grid.Row="0" Width="280" Margin="10">
 
+			<TextBlock Text="Create your own rhythms!" FontSize="20" HorizontalAlignment="Center"  Grid.Row="0" VerticalAlignment="Center"/>
+		</Border>
 
-		<Grid RowDefinitions="1*,4*,1*">
-			<TextBlock Text="Sandbox page" FontSize="20" HorizontalAlignment="Center"  Grid.Row="0"/>
-			<!-- those row definitions dont do anything -->
+		<Grid ColumnDefinitions="1*, 1*" Grid.Row="1">
+			<Grid Name="mainGridLeft" Grid.Column="0" RowDefinitions="1*,1*,1*,1*,1*" HorizontalAlignment="Center">
+				<StackPanel Orientation="Horizontal" Grid.Row="0" HorizontalAlignment="Center" Name="leftRow0">
+					<TextBox Height="40" Watermark="..." Margin="5" Name="leftStartBox"></TextBox>
+				</StackPanel>
+					<Button Content="+" Opacity="0.5" Margin="5" Command="{Binding NewRow}" CommandParameter="{x:Static services:Side.Left}"
+							Grid.Row="1" HorizontalAlignment="Center" Name="addNewRowButtonLeft"/>
+			</Grid>
 
-			<Button		Width="150" Height="30"
-					Margin="5" Grid.Row="3"
-					HorizontalContentAlignment="Center"
-					VerticalContentAlignment="Bottom"
-					Content="Back to homepage"
-					Command="{Binding HomeClick}"/>
+			<Grid Name="mainGridRight" Grid.Column="1" RowDefinitions="1*,1*,1*,1*,1*" HorizontalAlignment="Center">
+				<StackPanel Orientation="Horizontal">
+					<TextBox Height="40" Watermark="Enter top row here..."></TextBox>
+				</StackPanel>
+			</Grid>
+			
 		</Grid>
-	</StackPanel>
+		
+		<Button
+			HorizontalAlignment="Left" VerticalAlignment="Top"
+			HorizontalContentAlignment="Center" Content="Back to homepage"
+			Command="{Binding HomeClick}" Width="150" Height="35"
+			Grid.Row="2" Margin="5"/>
+
+		<Button
+			HorizontalAlignment="Center" VerticalAlignment="Top"
+			HorizontalContentAlignment="Center" Content="Confirm"
+			Width="150" Height="35" Command="{Binding ConfirmCommand}"
+			Grid.Row="2" Margin="5"/>
+	</Grid>
 </UserControl>

@@ -23,7 +23,7 @@ namespace third_year_project.ViewModels
             // Ensure notifications and command results are scheduled on the Avalonia UI scheduler
             LearnClick = ReactiveCommand.Create(() =>
             {
-                mainWindowVM.CurrentPage = new LevelSelectViewModel(mainWindowVM);
+                mainWindowVM.CurrentPage = new LevelSelectViewModel(mainWindowVM, true);
             }, outputScheduler: AvaloniaScheduler.Instance);
 
             SandboxClick = ReactiveCommand.Create(() =>
@@ -33,7 +33,7 @@ namespace third_year_project.ViewModels
 
             PracticeClick = ReactiveCommand.Create(() =>
             {
-                mainWindowVM.CurrentPage = new PracticePageViewModel(mainWindowVM, [4, 4, 4], [3, 3, 3, 3]);
+                mainWindowVM.CurrentPage = new LevelSelectViewModel(mainWindowVM, false);
             }, outputScheduler: AvaloniaScheduler.Instance);
 
             InfoClick = ReactiveCommand.Create(() =>

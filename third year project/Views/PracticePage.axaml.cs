@@ -65,20 +65,31 @@ public partial class PracticePage : UserControl
         _beatTimer.Start();
     }
 
+    //this is causing the app to crash whenever we enter the practicew page yay
     private void BeatTimer_Tick(object? sender, EventArgs e)
     {
         if (DataContext is not PracticePageViewModel vm)
             return;
 
-        while (SoundPlayer.instance.GetSoundMixerNotificationQueue().TryDequeue(out var frequency))
+        if (SoundPlayer.Instance.GetSoundMixerNotificationQueue(vm) == null)
+            return;
+
+
+        while (SoundPlayer.Instance.GetSoundMixerNotificationQueue(vm).TryDequeue(out var frequency))
         {
-            Console.WriteLine(frequency);
-            //sending about 90ms late????
-            AddLeftBlock(Brushes.Green);
+            Console.WriteLine($"made it here {frequency}");
+            if (vm.LeftPatternNote == SoundPlayer.FrequencyToNote(frequency))
+            {
+                AddBlock(Brushes.Green, true);
+            }
+            else if (vm.RightPatternNote == SoundPlayer.FrequencyToNote(frequency))
+            {
+                AddBlock(Brushes.Green, false);
+            }
+
         }
     }
 
-    //hacky i know but the blocks were coming early 
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
@@ -86,7 +97,7 @@ public partial class PracticePage : UserControl
         {
             if (e.Key == vm.GetLeftKey())
             {
-                AddLeftBlock(Brushes.Red);
+                AddBlock(Brushes.Red, true);
                 double distanceFromBeat = vm.OnKeyDown(e.Key);
 
                 double timeBetweenBeats = 60000 / (float)bpm; //measuered in ms
@@ -109,6 +120,32 @@ public partial class PracticePage : UserControl
                     LeftBottomText.Text = $"{Math.Abs(distanceFromBeat)}ms";
                 }
             }
+
+            if (e.Key == vm.GetRightKey())
+            {
+                AddBlock(Brushes.Red, false);
+                double distanceFromBeat = vm.OnKeyDown(e.Key);
+
+                double timeBetweenBeats = 60000 / (float)bpm; //measuered in ms
+                if (distanceFromBeat < inTimeRange && distanceFromBeat > -inTimeRange)
+                {
+                    RightTopText.Text = $"Good";
+                    RightTopText.Foreground = Avalonia.Media.Brushes.Green;
+                    RightBottomText.Text = $"";
+                }
+                else if (distanceFromBeat > inTimeRange)
+                {
+                    RightTopText.Text = $"Early";
+                    RightTopText.Foreground = Avalonia.Media.Brushes.Red;
+                    RightBottomText.Text = $"{distanceFromBeat}ms";
+                }
+                else
+                {
+                    RightTopText.Text = $"Late";
+                    RightTopText.Foreground = Avalonia.Media.Brushes.Red;
+                    RightBottomText.Text = $"{Math.Abs(distanceFromBeat)}ms";
+                }
+            }
         }
     }
 
@@ -121,20 +158,23 @@ public partial class PracticePage : UserControl
     }
 
 
-    private async Task AddLeftBlock(IImmutableSolidColorBrush colour)
+    private async Task AddBlock(IImmutableSolidColorBrush colour, bool left)
     {
         var rect = new Border
         {
             Background = colour,
             Width = 10,
-            Height = 30,
+            Height = 80,
             HorizontalAlignment = HorizontalAlignment.Left
         };
 
         var transform = new TranslateTransform();
         rect.RenderTransform = transform;
 
+        if(left)
         leftDisplay.Children.Add(rect);
+        else
+        rightDisplay.Children.Add(rect);
 
         await Move(rect, transform, leftDisplay.Width);
 

@@ -14,35 +14,81 @@ using System.Threading.Tasks;
 
 namespace third_year_project.Services
 {
-    internal class SoundPlayer
+    public sealed class SoundPlayer //exclusive ownership 
     {
+
+        private static readonly SoundPlayer _instance = new SoundPlayer();
+        public static SoundPlayer Instance => _instance;
+
+        private readonly object _lock = new();
+        private object? _owner;
+
+        private SoundPlayer() { }
+
+        // Try to become owner
+        public bool TryAcquire(object requester)
+        {
+            lock (_lock)
+            {
+                if (_owner == null)
+                {
+                    _owner = requester;
+                    return true;
+                }
+                Console.WriteLine("failed sound player acquisition (shouldnt happen!!!) ");
+                return false;
+            }
+        }
+
+        // Transfer ownership
+        public bool Transfer(object currentOwner, object newOwner)
+        {
+            lock (_lock)
+            {
+                if (!ReferenceEquals(_owner, currentOwner))
+                    return false;
+
+                _owner = newOwner;
+                return true;
+            }
+        }
+
+        // Release ownership
+        public void Release(object requester)
+        {
+            lock (_lock)
+            {
+                if (ReferenceEquals(_owner, requester))
+                    _owner = null;
+            }
+        }
+
+        public bool IsOwner(object requester)
+        {
+            lock (_lock)
+            {
+                return ReferenceEquals(_owner, requester);
+            }
+        }
+
+
         private ISoundOut soundOut;
         //private IWaveSource _waveSource;
         //private string soundsFolder = Path.Combine(AppContext.BaseDirectory, "Sounds");
         private double bufferTime = 0.1; // seconds
 
         //private int kickPlayingInt = 0, snarePlaying;
-        public static SoundPlayer instance { get; set; }
         public SoundMixer soundMixer;
         private float noteAmplitude = 0.8f;
         private int noteDurationMs = 200;
 
-        public SoundPlayer()
-        {
-            if(instance == null)
-            {
-                instance = this;
-            }
-            else
-            {
-                Console.WriteLine("multiple sound player instances defined :(");
-            }
-        }
-
         //this needs to be called on every page that wants to use this
-        public void Initialize()
+        public void Initialize(object requester)
         {
-            Console.WriteLine("in init");
+            if (!IsOwner(requester))
+            {
+                return;
+            }
             soundMixer = new SoundMixer(44100);
             soundOut = new WasapiOut();
             soundOut.Initialize(soundMixer);
@@ -51,17 +97,20 @@ namespace third_year_project.Services
         //general idea is that only one page will be using the soundplayer at a time.
         //could look into locks for robustness 
 
-        public void setBufferTime(double timeInSeconds)
-        {
-            bufferTime = timeInSeconds;
-        }
 
-        public void scheduleNote(long sample, Note note)
+        public void scheduleNote(object requester, long sample, Note note)
         {
+            if (!IsOwner(requester))
+            {
+                Console.WriteLine("An object tried to access soundplayer without being the owner");
+                return;
+            }
+
             double frequency = NoteToFrequency(note);
             soundMixer.ScheduleSine(sample, frequency, noteAmplitude, noteDurationMs);
         }
 
+        //tbh im all good if non owners wanna call these functions
         public long msToSample(double ms)
         {
             return soundMixer.MsToSamples(ms);
@@ -79,7 +128,7 @@ namespace third_year_project.Services
             return soundMixer.StartTime;
         }
 
-        public double NoteToFrequency(Note note)
+        public static double NoteToFrequency(Note note) //can be static since it doesnt access instance data
         {
             int octave = 0;
             while ((int)note >= 12)
@@ -132,15 +181,84 @@ namespace third_year_project.Services
                     Console.WriteLine("error invalid note entry!");
                     break;
             }
-            for (uint i = 0; i < octave; i++)
+            for (int i = 0; i < octave; i++)
             {
                 frequency *= 2;
             }
             return frequency;
         }
 
-        public ConcurrentQueue<double> GetSoundMixerNotificationQueue()
+        public static Note FrequencyToNote(double frequency)
         {
+            int octave = 0;
+            Note note = Note.C0;
+            while(frequency > 31) //B0, the highest note in octave 0, has a frequency of 30.87
+            {
+                Console.WriteLine(frequency);
+                octave++;
+                frequency = frequency / 2;
+            }
+
+            switch (frequency)
+            {
+                case 16.35:
+                    note = Note.C0;
+                    break;
+                case 17.32:
+                    note = Note.CSharp0;
+                    break;
+                case 18.35:
+                    note = Note.D0;
+                    break;
+                case 19.45:
+                    note = Note.DSharp0;
+                    break;
+                case 20.6:
+                    note = Note.E0;
+                    break;
+                case 21.83:
+                    note = Note.F0;
+                    break;
+                case 23.12:
+                    note = Note.FSharp0;
+                    break;
+                case 24.5:
+                    note = Note.G0;
+                    break;
+                case 25.96:
+                    note = Note.GSharp0;
+                    break;
+                case 27.5:
+                    note = Note.A0;
+                    break;
+                case 29.14:
+                    note = Note.ASharp0;
+                    break;
+                case 30.87:
+                    note = Note.B0;
+                    break;
+
+                default:
+                    Console.WriteLine("error invalid note entry!");
+                    break;
+            }
+            while(octave > 0)
+            {
+                Console.WriteLine(octave);
+                octave -= 1;
+                note += 12;
+            }
+            Console.WriteLine(note);
+            return note;
+        }
+
+        public ConcurrentQueue<double> GetSoundMixerNotificationQueue(object requester)
+        {
+            if (!IsOwner(requester))
+            {
+                Console.WriteLine("An object tried to access soundplayer without being the owner");
+                return null;
+            }
             return soundMixer.NoteNotifications;
         }
         //public void PlayKick()
@@ -182,8 +300,13 @@ namespace third_year_project.Services
         //    _soundOut.Play();
         //}
 
-        public void Stop()
+        public void Stop(object requester)
         {
+            if (!IsOwner(requester))
+            {
+                Console.WriteLine("An object tried to access soundplayer without being the owner");
+                return;
+            }
             Console.WriteLine("stopping");
             soundOut?.Stop();
             soundOut?.Dispose();

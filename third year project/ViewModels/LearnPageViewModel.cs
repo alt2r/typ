@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reactive;
+using System.Threading.Tasks;
 using third_year_project.Controls;
 using third_year_project.Services;
 namespace third_year_project.ViewModels
@@ -23,7 +24,7 @@ namespace third_year_project.ViewModels
             set => this.RaiseAndSetIfChanged(ref _currentDiagram, value);
         }
 
-        SoundPlayer soundPlayer = SoundPlayer.instance;
+        SoundPlayer soundPlayer = SoundPlayer.Instance;
         const double LOOKAHEADSECONDS = 0.1; //basically we want to schedule sounds a bit in advance to avoid latency issues
         long startSample = 0;
 
@@ -88,7 +89,10 @@ namespace third_year_project.ViewModels
 
         public LearnPageViewModel(MainWindowViewModel mainWindowVM, List<int[][]> rhythm)
         {
-            soundPlayer.Initialize();
+            while(!soundPlayer.TryAcquire(this)) //this surely wont cause an infinite loop right? :clueless:
+            { Task.Delay(500); }
+
+            soundPlayer.Initialize(this);
             setRhythmToDisplay(rhythm);
 
             HomeClick = ReactiveCommand.Create(() =>
@@ -98,6 +102,7 @@ namespace third_year_project.ViewModels
 
             PracticeClick = ReactiveCommand.Create(() =>
             {
+                soundPlayer.Release(this);
                 mainWindowVM.CurrentPage = new PracticePageViewModel(mainWindowVM, rhythm);
             }, outputScheduler: AvaloniaScheduler.Instance);
 
@@ -115,7 +120,6 @@ namespace third_year_project.ViewModels
             {
                 // This runs whenever the slider moves and on load apparently
                 StopBeepingCycles();
-                soundPlayer.Initialize();
                 StartBeepingCycles();
 
                 if (CurrentDiagram == tree)
@@ -132,6 +136,7 @@ namespace third_year_project.ViewModels
                     ClockDiagram cd = (ClockDiagram)clockBorder.Child;
                     cd.SetBpm(val);
                 }
+                resetDiagram();
             });
 
         }
@@ -150,14 +155,12 @@ namespace third_year_project.ViewModels
                     sc.OnControlSwitched();
                 }
             }
-            soundPlayer.Initialize();
             StartBeepingCycles();
         }
 
         public void StartBeepingCycles()
         {
-            //aight here we go
-
+            soundPlayer.Initialize(this);
             double beatMs = (60000.0 / _bpmSliderValue) / 2; //it should be over 4 but for some reason that was making it twice as fast dont even ask why
             //double rightBeatMs = ((60000.0 * rightPattern.Sum() / leftPattern.Sum()) / _bpmSliderValue) / 2;
             startSample = soundPlayer.getCurrentSample() + soundPlayer.msToSample(LOOKAHEADSECONDS * 1000);
@@ -184,7 +187,7 @@ namespace third_year_project.ViewModels
                 if (leftSixteenthNoteCounter == 0)
                 {
                     long beatSample = startSample + soundPlayer.msToSample(leftBeatNumber * beatMs); //-100 because keyboard input delay? idk this might be wrong still
-                    soundPlayer.scheduleNote(beatSample, Note.C4);
+                    soundPlayer.scheduleNote(this, beatSample, Note.C4);
                 }
                 leftSixteenthNoteCounter++;
                 leftBeatNumber++;
@@ -209,7 +212,7 @@ namespace third_year_project.ViewModels
                 if (rightSixteenthNoteCounter == 0)
                 {
                     long beatSample = startSample + soundPlayer.msToSample(rightBeatNumber * beatMs); //-100 because keyboard input delay? idk this might be wrong still
-                    soundPlayer.scheduleNote(beatSample, Note.F4);
+                    soundPlayer.scheduleNote(this, beatSample, Note.F4);
                 }
                 rightSixteenthNoteCounter++;
                 rightBeatNumber++;
@@ -221,7 +224,7 @@ namespace third_year_project.ViewModels
         public void StopBeepingCycles()
         {
             Console.WriteLine("stopping in learn");
-            soundPlayer.Stop();
+            soundPlayer.Stop(this);
             if (leftTimer != null)
             {
                 leftTimer.Stop();
@@ -238,6 +241,7 @@ namespace third_year_project.ViewModels
         public void OnViewClosed()
         {
             StopBeepingCycles();
+            soundPlayer.Release(this);
         }
     }
 }

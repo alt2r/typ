@@ -14,34 +14,44 @@
 				<TextBlock Text="Level Select page" FontSize="20" HorizontalAlignment="Center"  Grid.Row="0" VerticalAlignment="Center"/>
 			</Border>
 			<StackPanel Orientation="Horizontal" Spacing="10" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
-			<Button	 Height="30"
+				<StackPanel Orientation="Vertical">
+					<TextBlock Text="bohemian rhapsody" FontSize="12"></TextBlock>
+			<Button	 Height="30"  HorizontalAlignment="Center"
 					HorizontalContentAlignment="Center" VerticalContentAlignment="Bottom" Content="Level 1"
 					Command="{Binding LevelClick}" CommandParameter="1" Grid.Row="1" Grid.Column="1" Margin="5"/>
+				</StackPanel>
+				<StackPanel Orientation="Vertical">
+					<TextBlock Text="critical acclaim" FontSize="12"></TextBlock>
 			<Button	 Height="30" Margin="5"
 					HorizontalContentAlignment="Center" VerticalContentAlignment="Bottom" Content="Level 2"
 					Command="{Binding LevelClick}" CommandParameter="2" Grid.Row="1" Grid.Column="1"/>
+					</StackPanel>
+				<StackPanel Orientation="Vertical">
+					<TextBlock Text="saving hope" FontSize="12"></TextBlock>
 			<Button Height="30" HorizontalContentAlignment="Center"
 					VerticalContentAlignment="Bottom" Content="Level 3"
 					Command="{Binding LevelClick}" CommandParameter="3"
 					Grid.Row="1" Grid.Column="1" Margin="5"/>
+					</StackPanel>
+				<StackPanel Orientation="Vertical">
+					<TextBlock Text="testing rhythm" FontSize="12"></TextBlock>
 			<Button	Height="30" HorizontalContentAlignment="Center"
 					VerticalContentAlignment="Bottom" Content="Level 4"
 					Command="{Binding LevelClick}" CommandParameter="4"
 					Grid.Row="1" Grid.Column="1" Margin="5"/>
+					</StackPanel>
+				<StackPanel Orientation="Vertical">
+					<TextBlock Text="monomyth" FontSize="12"></TextBlock>
 			<Button	Height="30" HorizontalContentAlignment="Center"
 					VerticalContentAlignment="Bottom" Content="Level 5"
 					Command="{Binding LevelClick}" CommandParameter="5"
 					Grid.Row="1" Grid.Column="1" Margin="5"/>
+					</StackPanel>
 			</StackPanel>
-			<!-- those row definitions dont do anything -->
 
-				<Button
-					HorizontalAlignment="Center"
-					VerticalAlignment="Top"
-					HorizontalContentAlignment="Center"
-					Content="Back to homepage"
-					Command="{Binding HomeClick}"
-					Width="150" Height="35"
-					Grid.Row="2" Grid.Column="1" Margin="5"/>
+			<Button
+				HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+				Content="Back to homepage" Command="{Binding HomeClick}"
+				HorizontalAlignment="Left" Width="150" Height="40" Grid.Row="3" Margin="10"/>
 		</Grid>
 </UserControl>

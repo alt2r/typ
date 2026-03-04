@@ -8,11 +8,11 @@
 	<Color x:Key="PrimaryRed">#8B0000</Color>
 
 
-	<SolidColorBrush x:Key="BlueBrush" Color="{StaticResource PrimaryBlue}"/>
-	<SolidColorBrush x:Key="GreyBrush" Color="{StaticResource PrimaryGrey}"/>
-	<SolidColorBrush x:Key="YellowBrush" Color="{StaticResource PrimaryYellow}"/>
-	<SolidColorBrush x:Key="LightBlueBrush" Color="{StaticResource PrimaryLightBlue}"/>
-	<SolidColorBrush x:Key="RedBrush" Color="{StaticResource PrimaryRed}"/>
+	<SolidColorBrush x:Key="BlueBrush" Color="{DynamicResource PrimaryBlue}"/>
+	<SolidColorBrush x:Key="GreyBrush" Color="{DynamicResource PrimaryGrey}"/>
+	<SolidColorBrush x:Key="YellowBrush" Color="{DynamicResource PrimaryYellow}"/>
+	<SolidColorBrush x:Key="LightBlueBrush" Color="{DynamicResource PrimaryLightBlue}"/>
+	<SolidColorBrush x:Key="RedBrush" Color="{DynamicResource PrimaryRed}"/>
 	<SolidColorBrush x:Key="BlackBrush" Color="#000000"/>
 	<SolidColorBrush x:Key="WhiteBrush" Color="#FFFFFF"/>
 	<!-- in case we want to tint black or white colours later on-->
