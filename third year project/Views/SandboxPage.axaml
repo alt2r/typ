@@ -12,23 +12,22 @@
 	<Grid RowDefinitions="1*,5*,1*" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
 		<Border Grid.Row="0" Width="280" Margin="10">
 
-			<TextBlock Text="Create your own rhythms!" FontSize="20" HorizontalAlignment="Center"  Grid.Row="0" VerticalAlignment="Center"/>
+			<TextBlock Text="Create your own rhythms!" FontSize="20" HorizontalAlignment="Center"  Grid.Row="0" 
+					   VerticalAlignment="Center" Foreground="{StaticResource BlackBrush}"/>
 		</Border>
 
-		<Grid ColumnDefinitions="1*, 1*" Grid.Row="1">
-			<Grid Name="mainGridLeft" Grid.Column="0" RowDefinitions="1*,1*,1*,1*,1*" HorizontalAlignment="Center">
-				<StackPanel Orientation="Horizontal" Grid.Row="0" HorizontalAlignment="Center" Name="leftRow0">
-					<TextBox Height="40" Watermark="..." Margin="5" Name="leftStartBox"></TextBox>
+		<Grid ColumnDefinitions="1*, 1*" Grid.Row="1" VerticalAlignment="Top">
+				<StackPanel Orientation="Vertical" HorizontalAlignment="Center" Name="leftRootStackPanel" Grid.Column="0">
+					<TextBox Height="40" Watermark="..." Margin="5" Name="leftStartBox" Width="60"></TextBox>
+					<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Name="leftRootHorizontal">
+					</StackPanel>
 				</StackPanel>
-					<Button Content="+" Opacity="0.5" Margin="5" Command="{Binding NewRow}" CommandParameter="{x:Static services:Side.Left}"
-							Grid.Row="1" HorizontalAlignment="Center" Name="addNewRowButtonLeft"/>
-			</Grid>
 
-			<Grid Name="mainGridRight" Grid.Column="1" RowDefinitions="1*,1*,1*,1*,1*" HorizontalAlignment="Center">
-				<StackPanel Orientation="Horizontal">
-					<TextBox Height="40" Watermark="Enter top row here..."></TextBox>
+			<StackPanel Orientation="Vertical" HorizontalAlignment="Center" Name="rightRootStackPanel" Grid.Column="1">
+				<TextBox Height="40" Watermark="..." Margin="5" Name="rightStartBox" Width="60"></TextBox>
+				<StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Name="rightRootHorizontal">
 				</StackPanel>
-			</Grid>
+			</StackPanel>
 			
 		</Grid>
 		
@@ -41,7 +40,7 @@
 		<Button
 			HorizontalAlignment="Center" VerticalAlignment="Top"
 			HorizontalContentAlignment="Center" Content="Confirm"
-			Width="150" Height="35" Command="{Binding ConfirmCommand}"
+			Width="150" Height="35" Command="{Binding ConfirmClick}"
 			Grid.Row="2" Margin="5"/>
 	</Grid>
 </UserControl>

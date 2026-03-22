@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace third_year_project.ViewModels
 {
-    internal class InfoPageViewModel : ReactiveObject
+    internal class InfoPageViewModel : ViewModelBase
     {
         public ReactiveCommand<Unit, Unit> HomeClick { get; }
 

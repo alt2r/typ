@@ -7,20 +7,24 @@
 			 xmlns:vm="clr-namespace:third_year_project.ViewModels"
 			x:DataType="vm:InfoPageViewModel"
 			 Background="{StaticResource BlueBrush}">
-	
-	<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="20">
 
+	<Grid RowDefinitions="1*,5*,1*" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+		<Border Grid.Row="0" Width="220" Margin="10">
 
-		<Grid RowDefinitions="1*,4*,1*">
-			<TextBlock Text="info page" FontSize="20" HorizontalAlignment="Center"  Grid.Row="0"/>
-			<!-- those row definitions dont do anything -->
+			<TextBlock Text="Information" FontSize="20" HorizontalAlignment="Center"  Grid.Row="0" VerticalAlignment="Center"
+					   Foreground="{StaticResource BlackBrush}"/>
+		</Border>
+		<StackPanel Grid.Row="1" HorizontalAlignment="Center">
+			<TextBlock Text="resource ...." Foreground="White"/>
+		</StackPanel>
 
-			<Button		Width="150" Height="30"
-					Margin="5" Grid.Row="3"
-					HorizontalContentAlignment="Center"
-					VerticalContentAlignment="Bottom"
-					Content="Back to homepage"
-					Command="{Binding HomeClick}"/>
-		</Grid>
-	</StackPanel>
+		<Button
+			HorizontalAlignment="Left"
+			VerticalAlignment="Top"
+			HorizontalContentAlignment="Center"
+			Content="Back to homepage"
+			Command="{Binding HomeClick}"
+			Width="150" Height="35"
+			Grid.Row="2" Margin="5"/>
+	</Grid>
 </UserControl>

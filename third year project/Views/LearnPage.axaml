@@ -12,39 +12,32 @@
 		<Grid RowDefinitions="1*,4*,1*,1*">
 			<Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="2" CornerRadius="3" Background="{StaticResource AccentBrush1}" Grid.Row="0" Width="300" Margin="10">
 				<TextBlock Text="Learn From Visualisations" FontSize="20" HorizontalAlignment="Center" TextAlignment="Center" Padding="10" VerticalAlignment="Center"
-						   FontFamily="{StaticResource PrimaryFontFamily}"/>
+						   FontFamily="{StaticResource PrimaryFontFamily}" Foreground="{StaticResource BlackBrush}"/>
 			</Border>
-			<!-- those row definitions dont do anything -->
 			<Grid Grid.Row="1" Background="{StaticResource SecondaryBrush1}" HorizontalAlignment="Stretch" ColumnDefinitions="1*,8*,1*">
 				<StackPanel Grid.Column="0">
-					<TextBlock Text="Outer Circle:" FontSize="12" HorizontalAlignment="Center" TextAlignment="Center" Padding="5"
+					<TextBlock Text="Outer/Left:" FontSize="12" HorizontalAlignment="Center" TextAlignment="Center" Padding="5"
 							FontFamily="{StaticResource PrimaryFontFamily}" Name="LeftTopDiagramDesc"/>	
-					<TextBlock Text="Note: 4 4" FontSize="12" HorizontalAlignment="Center" TextAlignment="Center" Padding="5"
+					<TextBlock Text="Note: 4 4" FontSize="16" HorizontalAlignment="Center" TextAlignment="Center" Padding="5"
 							FontFamily="{StaticResource PrimaryFontFamily}" Name="LeftBottomDiagramDesc"/>
 					
-				<Button Content="Note +1" HorizontalAlignment="Center" FontSize="10" Padding="5"/>
-				<Button Content="Note -1" HorizontalAlignment="Center" FontSize="10" Padding="5"/>
 				</StackPanel>
 			<ContentControl Content="{Binding CurrentDiagram}" Grid.Column="1"
 							HorizontalAlignment="Center" VerticalAlignment="Stretch" />
 				<StackPanel Grid.Column="2">
-					<TextBlock Text="Inner Circle:" FontSize="12" HorizontalAlignment="Center" TextAlignment="Center" Padding="5"
+					<TextBlock Text="Inner/Right:" FontSize="12" HorizontalAlignment="Center" TextAlignment="Center" Padding="5"
 							FontFamily="{StaticResource PrimaryFontFamily}" Name="RightTopDiagramDesc"/>
-					<TextBlock Text="Note: 4 4 3 3" FontSize="12" HorizontalAlignment="Center" TextAlignment="Center" Padding="5"
+					<TextBlock Text="Note: 4 4 3 3" FontSize="16" HorizontalAlignment="Center" TextAlignment="Center" Padding="5"
 							FontFamily="{StaticResource PrimaryFontFamily}" Name="RightBottomDiagramDesc"/>
-
-					<Button Content="Note +1" HorizontalAlignment="Center" FontSize="10" Padding="5"/>
-					<Button Content="Note -1" HorizontalAlignment="Center" FontSize="10" Padding="5"/>
 				</StackPanel>
 			</Grid>
-
-
 
 			<Grid Margin="20" Grid.Row="2" ColumnDefinitions="1*, 1*, 1*">
 				<Border Grid.Column="0" Width="100" HorizontalAlignment="Right" Height="50" Margin="0, 0, 10, 0">
 				<StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
-					<TextBlock Text="BPM: " HorizontalAlignment="Center" Background="{StaticResource LightBlueBrush}" FontSize="18"/>
-					<TextBlock Text="{Binding #bpmSlider.Value}" FontSize="18"
+					<TextBlock Text="BPM: " HorizontalAlignment="Center" Background="{StaticResource LightBlueBrush}" FontSize="18"
+							   Foreground="{StaticResource BlackBrush}"/>
+					<TextBlock Text="{Binding #bpmSlider.Value}" FontSize="18" Foreground="{StaticResource BlackBrush}"
 								HorizontalAlignment="Center"  Background="{StaticResource LightBlueBrush}"/>
 				</StackPanel>
 				</Border>
@@ -52,7 +45,7 @@
 						Minimum="40" Maximum="200" TickFrequency="5"
 						IsSnapToTickEnabled="True" Value="{Binding BpmSliderValue, Mode=TwoWay}"
 						BorderBrush="{StaticResource WhiteBrush}" BorderThickness="2"
-						Height="50"/>
+						Height="50" Foreground="{StaticResource BlackBrush}"/>
 			</Grid>
 			
 				<Button HorizontalAlignment="Center" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"

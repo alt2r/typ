@@ -25,7 +25,7 @@ namespace third_year_project.Controls
     public class TreeDiagram : Control, SwitchableControl
     {
         DrawingContext context;
-        Node tree;
+        DiagramNode tree;
         private bool treeDrawn = false, resetFlashCycle = true;
         private int flashCycleStep;
         static Point offset = new Point(0, 0);
@@ -66,7 +66,7 @@ namespace third_year_project.Controls
             noteToPlay = note;
             //soundPlayer.Initialize();
 
-            LayoutUpdated += (_, _) =>
+            SizeChanged += (_, _) =>
             {
                 offset = new Point(0, 0);
                 treeDrawn = false;
@@ -85,9 +85,9 @@ namespace third_year_project.Controls
         }
         public TreeDiagram()
         {
-            structure = IntArrayParser.ParseTo2DIntArray(TreeStructure);
+            //structure = IntArrayParser.ParseTo2DIntArray(TreeStructure);
 
-            LayoutUpdated += (_, _) =>
+            SizeChanged += (_, _) =>
             {
                 offset = new Point(0, 0);
                 treeDrawn = false;
@@ -167,17 +167,17 @@ namespace third_year_project.Controls
             this.tree.draw(width, height, context, this, !treeDrawn, flashCycleStep);
             flashCycleStep = -1; //-1 will mean dont change it from what it was before
 
-            if (!treeDrawn)
-            {
-                StartFlashingCycle(bpm);
-            }
+            //if (!treeDrawn)
+            //{
+            //    StartFlashingCycle(bpm);
+            //}
 
-            if(resetFlashCycle)
-            {
-                setBranchColour(tree.GetBottomRowNodes()[0], new Pen(highlightBrush, 3));
-                tree.setCurrentFlashStep(1);
-                resetFlashCycle = false;
-            }
+            //if(resetFlashCycle)
+            //{
+            //    setBranchColour(tree.GetBottomRowNodes()[0], new Pen(highlightBrush, 3));
+            //    tree.setCurrentFlashStep(1);
+            //    resetFlashCycle = false;
+            //}
 
             treeDrawn = true;
 
@@ -185,7 +185,16 @@ namespace third_year_project.Controls
             //this.DetachedFromVisualTree += OnDetachedFromVisualTree;
 
         }
-        private Node BuildTreeRecursive(Node partTree, ref bool[][] nodesRead, ref int[][] definition)
+
+        public void ResetFlashCycle()
+        {
+            StartFlashingCycle(bpm);
+
+            //setBranchColour(tree.GetBottomRowNodes()[0], new Pen(highlightBrush, 3));
+            tree.setCurrentFlashStep(1);
+            resetFlashCycle = false;
+        }
+        private DiagramNode BuildTreeRecursive(DiagramNode partTree, ref bool[][] nodesRead, ref int[][] definition)
         {
             int layerTotal = 0;
             //Console.WriteLine($"part tree root: { partTree.getValue()}");
@@ -218,7 +227,7 @@ namespace third_year_project.Controls
                     return null;
                 }
                 layerTotal += definition[1][i]; //how far along the subtree we are 
-                Node child = new Node(definition[1][i]);
+                DiagramNode child = new DiagramNode(definition[1][i]);
                 partTree.AddChild(child); //add this number as a new child to the main object
 
                 //build sub arrays for the next layer down
@@ -233,7 +242,7 @@ namespace third_year_project.Controls
             return partTree;
         }
 
-        private Node buildTree()
+        private DiagramNode buildTree()
         {
             //int[][] definition = [ [14], [8, 6], [3, 5, 3, 3], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] ];
 
@@ -250,7 +259,7 @@ namespace third_year_project.Controls
                     throw new ArgumentException("invalid tree structure", nameof(structure));
                 }
             }
-            return BuildTreeRecursive(new Node(structure[0][0]), ref nodesRead, ref structure);
+            return BuildTreeRecursive(new DiagramNode(structure[0][0]), ref nodesRead, ref structure);
 
         }
 
@@ -287,10 +296,11 @@ namespace third_year_project.Controls
             //but for some reason the bpm was moving things half the speed it should have done
 
             StopFlashingCycle(); // make sure we don't start twice
-            List<Node> bottomRowNodes = tree.GetBottomRowNodes();
+            List<DiagramNode> bottomRowNodes = tree.GetBottomRowNodes();
             int[] countsToPlaySound = structure[structure.Length - 2]; //the second last row is the one that determines when to play sounds
 
             var interval = TimeSpan.FromSeconds(60.0 / Math.Max(bpm, 0.001));
+            interval *= 0.99; //was running ever so slightly too slow for some reason
 
             flashTimer = new DispatcherTimer(interval, DispatcherPriority.Normal, (s, e) =>
             {
@@ -322,10 +332,10 @@ namespace third_year_project.Controls
         }
 
 
-        public void setBranchColour(Node node, Pen pen)
+        public void setBranchColour(DiagramNode node, Pen pen)
         {
             //only meant to be called on leaf nodes
-            Node parent = node.GetParent();
+            DiagramNode parent = node.GetParent();
             if (parent != node)
             {
                 Point p = node.getThisPoint(); //+ offset;
@@ -373,10 +383,10 @@ namespace third_year_project.Controls
 
     }
 
-    public class Node
+    public class DiagramNode
     {
-        private List<Node> children;
-        private Node parent;
+        private List<DiagramNode> children;
+        private DiagramNode parent;
         private int value;
         Pen blackPen;
         private Point thisPoint = new Point();
@@ -384,10 +394,10 @@ namespace third_year_project.Controls
         private int currentFlashStep = 0;
         private IBrush? controlBackgroundBrush;
         private int circleRadius = 12;
-        public Node(int _value)
+        public DiagramNode(int _value)
         {
             value = _value;
-            children = new List<Node>();
+            children = new List<DiagramNode>();
             parent = this;
             blackPen = new Pen(Brushes.Black);
            
@@ -398,26 +408,26 @@ namespace third_year_project.Controls
             controlBackgroundBrush = _controlBackgroundBrush;
         }
 
-        public void AddChild(Node child)
+        public void AddChild(DiagramNode child)
         {
             children.Add(child);
             child.setParent(this);
         }
 
-        public void AddChildren(params Node[] _children)
+        public void AddChildren(params DiagramNode[] _children)
         {
-            foreach (Node c in _children)
+            foreach (DiagramNode c in _children)
             {
                 AddChild(c);
             }
         }
 
-        public List<Node> GetChildren()
+        public List<DiagramNode> GetChildren()
         {
             return children;
         }
 
-        public Node GetChildAt(int index)
+        public DiagramNode GetChildAt(int index)
         {
             return children[index];
         }
@@ -427,12 +437,12 @@ namespace third_year_project.Controls
             return children.Count();
         }
 
-        public Node GetParent()
+        public DiagramNode GetParent()
         {
             return parent;
         }
 
-        public void setParent(Node _parent)
+        public void setParent(DiagramNode _parent)
         {
             parent = _parent;
         }
@@ -468,7 +478,7 @@ namespace third_year_project.Controls
             else
             {
                 int total = 0;
-                foreach (Node c in children)
+                foreach (DiagramNode c in children)
                 {
                     total += c.TotalRowValDown(level - 1);
                 }
@@ -578,13 +588,13 @@ namespace third_year_project.Controls
             }
 
         }
-        public List<Node> GetBottomRowNodes()
+        public List<DiagramNode> GetBottomRowNodes()
         {
-            List<Node> bottomRowNodes = new List<Node>();
+            List<DiagramNode> bottomRowNodes = new List<DiagramNode>();
             GetBottomRowNodesRecursive(this, bottomRowNodes);
             return bottomRowNodes;
         }
-        private void GetBottomRowNodesRecursive(Node node, List<Node> bottomRowNodes)
+        private void GetBottomRowNodesRecursive(DiagramNode node, List<DiagramNode> bottomRowNodes)
         {
             if (node.GetChildren().Count == 0)
             {
@@ -592,7 +602,7 @@ namespace third_year_project.Controls
             }
             else
             {
-                foreach (Node child in node.GetChildren())
+                foreach (DiagramNode child in node.GetChildren())
                 {
                     GetBottomRowNodesRecursive(child, bottomRowNodes);
                 }

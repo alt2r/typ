@@ -53,6 +53,8 @@
 			<Setter Property="BorderBrush" Value="{StaticResource WhiteBrush}"/>
 			<Setter Property="BorderThickness" Value="2"/>
 			<Setter Property="Background" Value="{StaticResource YellowBrush}"/>
+			<Setter Property="Foreground" Value="{StaticResource BlackBrush}"/>
+
 		</Style>
 
 		<Style Selector="Border">

@@ -14,7 +14,7 @@ using third_year_project.Controls;
 using third_year_project.Services;
 namespace third_year_project.ViewModels
 {
-    public class LearnPageViewModel : ReactiveObject
+    public class LearnPageViewModel : ViewModelBase
     {
 
         private Control _currentDiagram;
@@ -25,7 +25,8 @@ namespace third_year_project.ViewModels
         }
 
         SoundPlayer soundPlayer = SoundPlayer.Instance;
-        const double LOOKAHEADSECONDS = 0.1; //basically we want to schedule sounds a bit in advance to avoid latency issues
+        double lookAheadMs = 200; //basically we want to schedule sounds a bit in advance to avoid latency issues
+        //also this wants to change based on the bpm apparently. 120bpm quite likes around 200 so gonna call it an even * 2
         long startSample = 0;
 
         int[] leftPattern;
@@ -43,11 +44,13 @@ namespace third_year_project.ViewModels
         public ReactiveCommand<Unit, Unit> HomeClick { get; }
         public ReactiveCommand<Unit, Unit> PracticeClick { get;  }
 
-        private List<int[][]> rhythmToDisplay = new List<int[][]>();
+        bool running = false;
+
+        //private List<int[][]> rhythmToDisplay = new List<int[][]>();
 
         public void setRhythmToDisplay(List<int[][]> rhythm)
         {
-            rhythmToDisplay = rhythm;
+            //rhythmToDisplay = rhythm;
             Grid treegrid = (Grid)((Border)tree).Child;
             treegrid.Children.Clear();
             int[][] clockStruc = new int[rhythm.Count][];
@@ -65,8 +68,6 @@ namespace third_year_project.ViewModels
             }
             leftPattern = clockStruc[0];
             rightPattern = clockStruc[1];
-            //this locks us into having exactly 2 rhythms going which wasnt the original design but the direction of the
-            //project means we will probs always be having 2 things at a time now anyway
             Border clockBorder = (Border)clock;
             clockBorder.Child = new ClockDiagram(clockStruc, notes);
         }
@@ -111,7 +112,21 @@ namespace third_year_project.ViewModels
             SwitchCommand = ReactiveCommand.Create(execute: () =>
             {
                 CurrentDiagram = CurrentDiagram == tree ? clock : tree; //switcharoo
+
+                //carry over the bpm
+                if (CurrentDiagram is Border border && border.Child is ClockDiagram cd)
+                {
+                    cd.SetBpm(_bpmSliderValue);
+                }
+                else if (CurrentDiagram is Border border2 && border2.Child is Grid treegrid)
+                {
+                    foreach (TreeDiagram td in treegrid.Children)
+                    {
+                        td.SetBpm(_bpmSliderValue);
+                    }
+                }
                 resetDiagram();
+                
             }, outputScheduler: AvaloniaScheduler.Instance);
 
 
@@ -136,9 +151,48 @@ namespace third_year_project.ViewModels
                     ClockDiagram cd = (ClockDiagram)clockBorder.Child;
                     cd.SetBpm(val);
                 }
-                resetDiagram();
+                lookAheadMs = val * 2;
+                running = false;
             });
 
+            soundPlayer.soundPlayed += (frequency) => //frequency isnt used here tho
+            {
+                if (!running)
+                {
+                    Dispatcher.UIThread.Post(() =>
+                    {
+
+                        running = true;
+                        if (CurrentDiagram == clock)
+                        {
+                            Border clockBorder = (Border)CurrentDiagram;
+                            var cd = (ClockDiagram)clockBorder.Child;
+                            cd?.OnControlSwitched(); //resets hand position
+                            cd?.StartSpinningCycle();
+                        }
+                        else
+                        {
+                            Grid treegrid = (Grid)((Border)tree).Child;
+                            foreach (TreeDiagram t in treegrid.Children)
+                            {
+                                t.ResetFlashCycle();
+                            }
+                        }
+
+                    });
+                }
+            };
+
+        }
+
+        public int[] GetLeftPattern()
+        {
+            return leftPattern;
+        }
+
+        public int[] GetRightPattern()
+        {
+            return rightPattern;
         }
 
         private void resetDiagram()
@@ -155,6 +209,7 @@ namespace third_year_project.ViewModels
                     sc.OnControlSwitched();
                 }
             }
+            running = false;
             StartBeepingCycles();
         }
 
@@ -163,17 +218,16 @@ namespace third_year_project.ViewModels
             soundPlayer.Initialize(this);
             double beatMs = (60000.0 / _bpmSliderValue) / 2; //it should be over 4 but for some reason that was making it twice as fast dont even ask why
             //double rightBeatMs = ((60000.0 * rightPattern.Sum() / leftPattern.Sum()) / _bpmSliderValue) / 2;
-            startSample = soundPlayer.getCurrentSample() + soundPlayer.msToSample(LOOKAHEADSECONDS * 1000);
 
             int leftSixteenthNoteCounter = 0; //counts sixteenth notes in between the beats
             int leftPatternIndex = 0; //what note of the looping pattern we are currently on
             int leftBeatNumber = 0;
             TimeSpan interval = TimeSpan.FromMilliseconds(beatMs * 0.9); //may need a -100 here as a buffer?
                                                                          //yes the longer it runs the further ahead of real time the schedule queue will get but i dont think its that much of a bad thing atp
-
+            startSample = soundPlayer.GetCurrentSample() + soundPlayer.MsToSample(lookAheadMs);
             leftTimer = new DispatcherTimer(interval, DispatcherPriority.Normal, (s, e) =>
             {
-                Console.WriteLine("running in timer");
+                
                 if (leftPattern[leftPatternIndex] == leftSixteenthNoteCounter)
                 {
                     leftSixteenthNoteCounter = 0;
@@ -186,8 +240,8 @@ namespace third_year_project.ViewModels
                 }
                 if (leftSixteenthNoteCounter == 0)
                 {
-                    long beatSample = startSample + soundPlayer.msToSample(leftBeatNumber * beatMs); //-100 because keyboard input delay? idk this might be wrong still
-                    soundPlayer.scheduleNote(this, beatSample, Note.C4);
+                    long beatSample = startSample + soundPlayer.MsToSample(leftBeatNumber * beatMs); //-100 because keyboard input delay? idk this might be wrong still
+                    soundPlayer.ScheduleNote(this, beatSample, Note.C4);
                 }
                 leftSixteenthNoteCounter++;
                 leftBeatNumber++;
@@ -197,6 +251,7 @@ namespace third_year_project.ViewModels
             int rightPatternIndex = 0; //what note of the looping pattern we are currently on
             int rightBeatNumber = 0;
 
+            startSample = soundPlayer.GetCurrentSample() + soundPlayer.MsToSample(lookAheadMs);
             rightTimer = new DispatcherTimer(interval, DispatcherPriority.Normal, (s, e) =>
             {
                 if (rightPattern[rightPatternIndex] == rightSixteenthNoteCounter)
@@ -211,8 +266,8 @@ namespace third_year_project.ViewModels
                 }
                 if (rightSixteenthNoteCounter == 0)
                 {
-                    long beatSample = startSample + soundPlayer.msToSample(rightBeatNumber * beatMs); //-100 because keyboard input delay? idk this might be wrong still
-                    soundPlayer.scheduleNote(this, beatSample, Note.F4);
+                    long beatSample = startSample + soundPlayer.MsToSample(rightBeatNumber * beatMs); //-100 because keyboard input delay? idk this might be wrong still
+                    soundPlayer.ScheduleNote(this, beatSample, Note.F4);
                 }
                 rightSixteenthNoteCounter++;
                 rightBeatNumber++;
@@ -223,7 +278,6 @@ namespace third_year_project.ViewModels
 
         public void StopBeepingCycles()
         {
-            Console.WriteLine("stopping in learn");
             soundPlayer.Stop(this);
             if (leftTimer != null)
             {

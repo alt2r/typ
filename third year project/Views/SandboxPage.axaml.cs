@@ -5,7 +5,9 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Metadata;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reactive;
+using System.Xml.Serialization;
 using third_year_project.Services;
 using third_year_project.ViewModels;
 
@@ -14,7 +16,8 @@ namespace third_year_project.Views;
 public partial class SandboxPage : UserControl
 {
     SandboxPageViewModel vm;
-    List<StackPanel> leftRows = new List<StackPanel>();
+    Node leftTree;
+    Node rightTree;
 
     TextBox[,] textBoxReferencesLeft = new TextBox[5, 8];
     public SandboxPage()
@@ -27,101 +30,102 @@ public partial class SandboxPage : UserControl
                 vm = _vm;
                 vm.AddNodeInView.RegisterHandler(interaction =>
                 {
-                    var args = interaction.Input;
                     interaction.SetOutput(Unit.Default);
-                    AddNode((Side)((int)args[0] - 48), (int)args[1] - 48); //ascii conversion since int parse is being difficult
+                    AddNode(interaction.Input); //ascii conversion since int parse is being difficult
                 });
 
                 vm.AddRowInView.RegisterHandler(interaction =>
                 {
-                    Side side = (Side)((int)interaction.Input[0] - 48);
                     interaction.SetOutput(Unit.Default);
-                    AddRow(side);
-                });
-
-                vm.ConfirmInView.RegisterHandler(interaction =>
-                {
-                    Console.WriteLine("confirming");
-                    interaction.SetOutput(Unit.Default);
+                    AddRow(interaction.Input);
                 });
 
                 textBoxReferencesLeft[0, 0] = leftStartBox;
+
+                vm.leftRootNode = new Node(vm.leftRootNode, leftRootStackPanel, leftRootHorizontal, leftStartBox);
+                vm.rightRootNode = new Node(vm.rightRootNode, rightRootStackPanel, rightRootHorizontal, rightStartBox);
+
+                leftTree = vm.leftRootNode;
+                rightTree = vm.rightRootNode;
             }
+
+
+            Button btnL = new Button
+            {
+                Content = "+",
+                Opacity = 0.5,
+                Margin = Avalonia.Thickness.Parse("5"),
+                Command = vm.NewRow,
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
+            };
+            btnL.CommandParameter = leftTree;
+            leftRootStackPanel.Children.Add(btnL);
+
+            Button btnR = new Button
+            {
+                Content = "+",
+                Opacity = 0.5,
+                Margin = Avalonia.Thickness.Parse("5"),
+                Command = vm.NewRow,
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
+            };
+            btnR.CommandParameter = rightTree;
+            rightRootStackPanel.Children.Add(btnR);
+
         };
-        leftRows.Add(leftRow0); //jsut for testing 
     }
-    private void AddNode(Side side, int row)
+
+    private Node GetNodeAtPosition(Node tree, string position)
     {
-        if(leftRows.Count > row - 1)
-        {
-           // row = row + 1; //think this is bc top row doesnt count?
+        if (position.Length == 0)
+        { //this needs validation bro (from past harry)
+            return tree;
         }
-        
-        Console.WriteLine(row);
-        TextBox node = new TextBox
+        return GetNodeAtPosition(tree.GetChildren()[Convert.ToInt32(position[0])], position[1..]);
+    }
+    private void AddNode(Node parent)
+    {
+        TextBox textBox = new TextBox
         {
             Height = 40,
+            Width = 40,
+            MinWidth = 0,
+            MaxWidth =40,
             Watermark = "...",
-            Margin = Avalonia.Thickness.Parse("5")
+            Margin = Avalonia.Thickness.Parse("3,10,3,10")
         };
-
-        
-        if (side == Side.Left)
-        {
-            Console.WriteLine($"row: {row}");
-            leftRows[row].Children.Insert(leftRows[row].Children.Count - 1, node);
-            textBoxReferencesLeft[row, leftRows[row].Children.Count - 2] = node;
-            Console.WriteLine($"adding text box at {row}, {leftRows[row].Children.Count - 2}");
-            if (leftRows[row].Children.Count > 8)   //bear in mind that this is fucked and needs to be redone after the showcase
-            {
-                leftRows[row].Children.RemoveAt(8);
-            }
-            
-        }
-        //mainGridRight.Children.Add(node);
-    }
-
-    private void AddRow(Side side)
-    {
-        StackPanel row = new StackPanel
-        {
-            Orientation = Avalonia.Layout.Orientation.Horizontal,
-            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center
-        };
-
+        Node node = new Node(parent, textBox);
         Button plus = new Button
         {
             Content = "+",
             Opacity = 0.5,
             Margin = Avalonia.Thickness.Parse("5")
         };
-        //plus.Bind(Button.CommandProperty, new Binding(nameof(vm.NewNode)) { Source = vm });
-        plus.Command = vm.NewNode;
-        Grid.SetRow(row, mainGridLeft.Children.Count - 1);
-        if (side == Side.Left)
-        {
-            plus.CommandParameter = new NodeCreationArgs { side = Side.Left, row = leftRows.Count };
-            row.Children.Add(plus);
-            mainGridLeft.Children.Add(row);
-            leftRows.Add(row);
 
-        }
-        else
-        {
-            mainGridRight.Children.Add(row);
-        }
-
-        if (leftRows.Count <= 4)
-        {
-            Grid.SetRow(addNewRowButtonLeft, leftRows.Count);
-        }
-        else
-        {
-            mainGridLeft.Children.Remove(addNewRowButtonLeft);
-        }
-        Console.WriteLine("hey");
-        Console.WriteLine(plus.CommandParameter);
-        AddNode(side, leftRows.Count - 1);
+        plus.Command = vm.NewRow;
+        plus.CommandParameter = node;
+        parent.AddChildNode(node);
+        node.AddControlBelow(plus);
     }
 
+    private void AddRow(Node nodeCalledOn)
+    {
+
+        Button plus = new Button
+        {
+            Content = "+",
+            Opacity = 0.5,
+            Margin = Avalonia.Thickness.Parse("2"),
+            Command = vm.NewNode,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
+            Padding = Avalonia.Thickness.Parse("4")
+
+        };
+        plus.CommandParameter = nodeCalledOn;
+        AddNode(nodeCalledOn);
+        AddNode(nodeCalledOn);
+        nodeCalledOn.AddControlBeside(plus);
+        nodeCalledOn.RemoveFromVertical(); //remove the button we just clicked
+
+    }
 }

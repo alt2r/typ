@@ -10,7 +10,7 @@ using System.Reactive.Subjects;
 
 namespace third_year_project.ViewModels
 {
-    public partial class HomePageViewModel : ReactiveObject
+    public partial class HomePageViewModel : ViewModelBase
     {
         public ReactiveCommand<Unit, Unit> LearnClick { get; } //goes to level select page before reaching levels
         public ReactiveCommand<Unit, Unit> SandboxClick { get; }

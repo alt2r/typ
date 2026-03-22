@@ -23,7 +23,7 @@ using third_year_project.Services;
 
 namespace third_year_project.Controls
 {
-    internal class ClockDiagram : Control, SwitchableControl
+    public class ClockDiagram : Control, SwitchableControl
     {
         DrawingContext context;
         bool clockDrawn = false;
@@ -68,19 +68,19 @@ namespace third_year_project.Controls
                 //soundPlayer.scheduleNote(soundPlayer.getCurrentSample(), notes[i]); //was having an issue where the initial notes didnt play 
             }
 
-            LayoutUpdated += (_, _) =>
+            SizeChanged += (_, _) =>
             {
                 updateBounds = true;
                 clockDrawn = false;
-                StopSpinningCycle();
+                //StopSpinningCycle();
                 InvalidateVisual();
             };
 
         }
 
-        public ClockDiagram()
+        public ClockDiagram() //when we defined this in the axaml there were no constructor paramaters this is still here in case we want to test things directly in axaml
         {
-            structure = IntArrayParser.ParseTo2DIntArray(ClockStructure);
+            //structure = IntArrayParser.ParseTo2DIntArray(ClockStructure);
             beatPositionsOnCircles.Clear();
             for (int i = 0; i < structure.Length; i++)
             {
@@ -91,7 +91,7 @@ namespace third_year_project.Controls
                 //soundPlayer.scheduleNote(soundPlayer.getCurrentSample(), notes[i]); //was having an issue where the initial notes didnt play 
             }
 
-            LayoutUpdated += (_, _) =>
+            SizeChanged += (_, _) =>
             {
                 updateBounds = true;
                 clockDrawn = false;
@@ -196,7 +196,7 @@ namespace third_year_project.Controls
 
             if (!clockDrawn)
             {
-                StartSpinningCycle(bpm);
+                //StartSpinningCycle(bpm);
                 clockDrawn = true;
             }
         }
@@ -224,7 +224,7 @@ namespace third_year_project.Controls
         //    }
         //}
         private DispatcherTimer? spinTimer;
-        public void StartSpinningCycle(int bpm)
+        public void StartSpinningCycle()
         {
 
             StopSpinningCycle(); // make sure we don't start twice
@@ -273,6 +273,7 @@ namespace third_year_project.Controls
         }
         public void StopSpinningCycle()
         {
+            Console.WriteLine("in stop spinning");
             if (spinTimer != null)
             {
                 spinTimer.Stop();
@@ -283,10 +284,13 @@ namespace third_year_project.Controls
 
         public void SetBpm(int _bpm)
         {
+            if (bpm < 0)
+                throw new ArgumentOutOfRangeException();
             bpm = _bpm;
             if (!clockDrawn)
             {
                 clockDrawn = false;
+                Console.WriteLine("stop spinning bc setting bpm");
                 StopSpinningCycle();
                 InvalidateVisual();
             }

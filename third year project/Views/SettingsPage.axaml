@@ -12,12 +12,14 @@
 	<Grid RowDefinitions="1*,5*,1*" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
 		<Border Grid.Row="0" Width="220" Margin="10">
 
-			<TextBlock Text="Settings Page" FontSize="20" HorizontalAlignment="Center"  Grid.Row="0" VerticalAlignment="Center"/>
+			<TextBlock Text="Settings Page" FontSize="20" HorizontalAlignment="Center"  Grid.Row="0" VerticalAlignment="Center"
+					   Foreground="{StaticResource BlackBrush}"/>
 		</Border>
 		<StackPanel Grid.Row="1" HorizontalAlignment="Center">
 			<StackPanel Orientation="Horizontal" Margin="5">
 				<Border Grid.Row="0" Width="220" Margin="10, 0, 10, 0" HorizontalAlignment="Center" VerticalAlignment="Center">
-				<TextBlock Text="Colour scheme:" FontSize="17" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+				<TextBlock Text="Colour scheme:" FontSize="17" HorizontalAlignment="Center" VerticalAlignment="Center"
+						   Foreground="{StaticResource BlackBrush}"/>
 				</Border>
 			<ComboBox Width="200"
           SelectedIndex="0">
@@ -28,7 +30,8 @@
 			</StackPanel>
 			<StackPanel Orientation="Horizontal" Margin="5">
 				<Border Grid.Row="0" Width="220" Margin="10, 0, 10, 0" HorizontalAlignment="Center" VerticalAlignment="Center">
-					<TextBlock Text="Audio volume:" FontSize="17" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+					<TextBlock Text="Audio volume:" FontSize="17" HorizontalAlignment="Center" VerticalAlignment="Center"
+							   Foreground="{StaticResource BlackBrush}"/>
 				</Border>
 				<Slider Minimum="0" Maximum="100" Width="200" TickFrequency="1"
 						IsSnapToTickEnabled="True" />

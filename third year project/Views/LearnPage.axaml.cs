@@ -14,6 +14,31 @@ public partial class LearnPage : UserControl
         InitializeComponent();
         bpmSlider.PropertyChanged += BpmSlider_PropertyChanged;
         DetachedFromVisualTree += OnDetached;
+
+
+        DataContextChanged += OnDataContextChanged;
+    }
+
+    private void OnDataContextChanged(object? sender, EventArgs e)
+    {
+        if (DataContext is LearnPageViewModel vm)
+        {
+            string left = "";
+            string right = "";
+            int[] leftpattern = vm.GetLeftPattern();
+            int[] rightpattern = vm.GetRightPattern();
+            foreach (int x in leftpattern)
+            {
+                left += Convert.ToString(x) + " ";
+            }
+            foreach (int x in rightpattern)
+            {
+                right += Convert.ToString(x) + " ";
+            }
+            LeftBottomDiagramDesc.Text = left;
+            RightBottomDiagramDesc.Text = right;
+            Console.WriteLine("text should be updaetd ");
+        }
     }
 
     private void BpmSlider_PropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
@@ -21,7 +46,7 @@ public partial class LearnPage : UserControl
         if (e.Property == Slider.ValueProperty)
         {
             bpm = Convert.ToInt32(e.NewValue!);
-            //Console.WriteLine($"new bpm: {e.NewValue}");
+            
         }
     }
 

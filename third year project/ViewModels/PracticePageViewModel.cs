@@ -19,13 +19,14 @@ using third_year_project.Views;
 
 namespace third_year_project.ViewModels
 {
-    internal class PracticePageViewModel : ReactiveObject
+    internal class PracticePageViewModel : ViewModelBase
     {
         SoundPlayer soundPlayer = SoundPlayer.Instance;
         Key leftKey = Key.A;
         Key rightKey = Key.L;
         const double LOOKAHEADSECONDS = 0.1; //basically we want to schedule sounds a bit in advance to avoid latency issues
         long startSample = 0;
+        bool leftOn = true, rightOn = true;
 
         Note leftPatternNote = Note.C4;
         Note rightPatternNote = Note.F4;
@@ -47,6 +48,9 @@ namespace third_year_project.ViewModels
 
         public ReactiveCommand<Unit, Unit> HomeClick { get; }
         public ReactiveCommand<Unit, Unit> LearnClick { get; }
+        public ReactiveCommand<Unit, Unit> SwitchClick { get; }
+        public ReactiveCommand<Unit, Unit> ToggleLeftClick { get; }
+        public ReactiveCommand<Unit, Unit> ToggleRightClick { get; }
 
         public PracticePageViewModel(MainWindowViewModel mainWindowVM, List<int[][]> rhythm)
         {
@@ -64,7 +68,24 @@ namespace third_year_project.ViewModels
                 mainWindowVM.CurrentPage = new LearnPageViewModel(mainWindowVM, rhythm);
             }, outputScheduler: AvaloniaScheduler.Instance);
 
-            while (!soundPlayer.TryAcquire(this)) //this surely wont cause an infinite loop right? :clueless:
+            SwitchClick = ReactiveCommand.Create(() =>
+            {
+                SwapSides();
+            }, outputScheduler: AvaloniaScheduler.Instance);
+
+            ToggleLeftClick = ReactiveCommand.Create(() =>
+            {
+                ToggleLeft();
+            }, outputScheduler: AvaloniaScheduler.Instance);
+
+            ToggleRightClick = ReactiveCommand.Create(() =>
+            {
+                ToggleRight();
+            }, outputScheduler: AvaloniaScheduler.Instance);
+
+
+
+            while (!soundPlayer.TryAcquire(this))
             { Task.Delay(500); }
             soundPlayer.Initialize(this);
 
@@ -76,6 +97,102 @@ namespace third_year_project.ViewModels
                 StartBeepingCycles();
 
             });
+
+            this.WhenAnyValue(x => x.LeftMuted)
+                .Subscribe(_ => { 
+                    this.RaisePropertyChanged(nameof(LeftIconSource));
+                });
+
+            this.WhenAnyValue(x => x.RightMuted)
+                .Subscribe(_ => {
+                    this.RaisePropertyChanged(nameof(RightIconSource));
+                });
+        }
+
+
+        private bool _leftMuted;
+        public bool LeftMuted
+        {
+            get => _leftMuted;
+            set => this.RaiseAndSetIfChanged(ref _leftMuted, value);
+        }
+
+        public string LeftIconSource => //yes this was meant to be a speaker icon. yes i spent 2 hours trying to get it to work
+            new string(LeftMuted        //yes i gave up, deadlines too soon and there are core features that are currently broken
+                ? "Pattern not playing" 
+                : "Pattern playing");
+
+        private bool _rightMuted;
+        public bool RightMuted
+        {
+            get => _rightMuted;
+            set => this.RaiseAndSetIfChanged(ref _rightMuted, value);
+        }
+
+        public string RightIconSource =>
+            new string(RightMuted
+                ? "Pattern not playing"
+                : "Pattern playing");
+        public void SwapSides()
+        {
+            //Console.WriteLine("in swapsides");
+            StopBeepingCycles() ;
+            var temp = leftPattern;
+            leftPattern = rightPattern;
+            rightPattern = temp;
+            StartBeepingCycles();
+        }
+
+        public void ToggleLeft()
+        {
+            //Console.WriteLine("in toggleleft");
+            if (leftOn)
+            {
+                StopLeftCycle();
+                leftOn = false;
+            }
+            else if(rightOn)
+            {
+                StopRightCycle();
+                StartLeftCycle();
+                StartRightCycle(); //if theres more time at the end have a more elegant way to realign the left beat with the right one
+                leftOn = true;
+            }
+            else
+            {
+                StartLeftCycle();
+                leftOn = true;
+            }
+                LeftMuted = !LeftMuted;
+            this.RaisePropertyChanged(nameof(LeftIconSource));
+        }
+
+        public void ToggleRight()
+        {
+            if (rightOn)
+            {
+                StopRightCycle();
+                rightOn = false;
+            }
+            else if(leftOn)
+            {
+                StopLeftCycle();
+                StartLeftCycle();
+                StartRightCycle();
+                rightOn = true;
+            }
+            else
+            {
+                StartRightCycle();
+                rightOn = true;
+            }
+            RightMuted = !RightMuted;
+            this.RaisePropertyChanged(nameof(RightIconSource));
+        }
+
+        public SoundPlayer GetSoundPlayer() //view needs sound player reference lol
+        {
+            return soundPlayer;
         }
 
 
@@ -83,23 +200,30 @@ namespace third_year_project.ViewModels
         {
             soundPlayer.TryAcquire(this);
             soundPlayer.Initialize(this);
-            
-            int totalBeats = leftPattern.Sum();
             //so we are assuming that 1 is a 16th note at the bpm specified by bpm. meaning 4 is a a quarter. bpm is in minutes so 60000ms / bpm = ms per quarter note
             //this means we want to have beatMS = 60000 / bpm / 4 for a 16th note and then loop through each possible 16th note and add a note if its in the pattern
             //brain please start working again
 
             // bpm value doubled again here, maybe i am confusing 16th notes with 8th notes
 
-            double beatMs = (60000.0 / _bpmSliderValue) / 2;
-            startSample = soundPlayer.getCurrentSample() + soundPlayer.msToSample(LOOKAHEADSECONDS * 1000);
+            
+            startSample = soundPlayer.GetCurrentSample() + soundPlayer.MsToSample(LOOKAHEADSECONDS * 1000);
 
+            StartLeftCycle();
+            StartRightCycle();
+
+        }
+
+        public void StartLeftCycle()
+        {
+
+            double beatMs = (60000.0 / _bpmSliderValue) / 2;
             int leftSixteenthNoteCounter = 0; //counts sixteenth notes in between the beats
             int leftPatternIndex = 0; //what note of the looping pattern we are currently on
             int leftBeatNumber = 0;
             TimeSpan interval = TimeSpan.FromMilliseconds(beatMs * 0.9); //may need a -100 here as a buffer?
-            //yes the longer it runs the further ahead of real time the schedule queue will get but i dont think its that much of a bad thing atp
-            
+                                                                         //yes the longer it runs the further ahead of real time the schedule queue will get but i dont think its that much of a bad thing atp
+
             leftTimer = new DispatcherTimer(interval, DispatcherPriority.Normal, (s, e) =>
             {
                 if (leftPattern[leftPatternIndex] == leftSixteenthNoteCounter)
@@ -114,14 +238,20 @@ namespace third_year_project.ViewModels
                 }
                 if (leftSixteenthNoteCounter == 0)
                 {
-                    long beatSample = startSample + soundPlayer.msToSample(leftBeatNumber * beatMs);
-                    soundPlayer.scheduleNote(this, beatSample, leftPatternNote);
-                    Console.WriteLine($"scheduling at {beatSample} and the current sample is {soundPlayer.getCurrentSample()}");
+                    long beatSample = startSample + soundPlayer.MsToSample(leftBeatNumber * beatMs);
+                    soundPlayer.ScheduleNote(this, beatSample, leftPatternNote);
+                    //Console.WriteLine($"scheduling at {beatSample} and the current sample is {soundPlayer.getCurrentSample()}");
                 }
                 leftSixteenthNoteCounter++;
                 leftBeatNumber++;
             });
+        }
 
+        public void StartRightCycle()
+        {
+
+            double beatMs = (60000.0 / _bpmSliderValue) / 2;
+            TimeSpan interval = TimeSpan.FromMilliseconds(beatMs * 0.9);
             int rightSixteenthNoteCounter = 0; //counts sixteenth notes in between the beats
             int rightPatternIndex = 0; //what note of the looping pattern we are currently on
             int rightBeatNumber = 0;
@@ -140,26 +270,36 @@ namespace third_year_project.ViewModels
                 }
                 if (rightSixteenthNoteCounter == 0)
                 {
-                    long beatSample = startSample + soundPlayer.msToSample(rightBeatNumber * beatMs); //-100 because keyboard input delay? idk this might be wrong still
-                   
-                    soundPlayer.scheduleNote(this, beatSample, rightPatternNote);
+                    long beatSample = startSample + soundPlayer.MsToSample(rightBeatNumber * beatMs); //-100 because keyboard input delay? idk this might be wrong still
+
+                    soundPlayer.ScheduleNote(this, beatSample, rightPatternNote);
                 }
                 rightSixteenthNoteCounter++;
                 rightBeatNumber++;
             });
-
         }
 
 
         public void StopBeepingCycles()
         {
-            Console.WriteLine("stopping in practice");
+            //Console.WriteLine("stopping in practice");
             soundPlayer.Stop(this);
+
+            StopLeftCycle();
+            StopRightCycle();
+        }
+
+        public void StopLeftCycle()
+        {
             if (leftTimer != null)
             {
                 leftTimer.Stop();
                 leftTimer = null;
             }
+        }
+
+        public void StopRightCycle()
+        {
             if (rightTimer != null)
             {
                 rightTimer.Stop();
@@ -187,11 +327,13 @@ namespace third_year_project.ViewModels
         {
             if (key == leftKey)
             {
-                long currentSample = soundPlayer.getCurrentSample();
+                if(!leftOn) //only make the noise if the app isnt playing this side
+                    soundPlayer.PlayLiveNote(LeftPatternNote);
 
+                long currentSample = soundPlayer.GetCurrentSample();
                 currentSample -= startSample;
                 double beatMs = (60000.0 / _bpmSliderValue) / 2;  //8th notes
-                long beatSamples = soundPlayer.msToSample(beatMs);
+                long beatSamples = soundPlayer.MsToSample(beatMs);
                 int totalBeats = leftPattern.Sum();
 
                 long samplePositionInBar = currentSample % (beatSamples * totalBeats);
@@ -212,18 +354,20 @@ namespace third_year_project.ViewModels
                     }
                 }
 
-                double msLate = soundPlayer.sampleToMs(timeDiff);
+                double msLate = soundPlayer.SampleToMs(timeDiff);
                 //msLate -= 100; //correcting for delays
                 return Math.Round(msLate);
             }
 
             else if (key == rightKey)
             {
-                long currentSample = soundPlayer.getCurrentSample();
+                if(!rightOn)
+                    soundPlayer.PlayLiveNote(rightPatternNote);
 
+                long currentSample = soundPlayer.GetCurrentSample();
                 currentSample -= startSample;
                 double beatMs = (60000.0 / _bpmSliderValue) / 2; 
-                long beatSamples = soundPlayer.msToSample(beatMs);
+                long beatSamples = soundPlayer.MsToSample(beatMs);
                 int totalBeats = rightPattern.Sum();
 
                 long samplePositionInBar = currentSample % (beatSamples * totalBeats);
@@ -244,7 +388,7 @@ namespace third_year_project.ViewModels
                     }
                 }
 
-                double msLate = soundPlayer.sampleToMs(timeDiff);
+                double msLate = soundPlayer.SampleToMs(timeDiff);
                 //msLate -= 100; //correcting for delays
                 return Math.Round(msLate);
             }
@@ -254,6 +398,8 @@ namespace third_year_project.ViewModels
         {
 
         }
+
+
 
     }
 }

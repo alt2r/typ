@@ -52,42 +52,24 @@ public partial class PracticePage : UserControl
         base.OnAttachedToVisualTree(e);
         Focus();
 
-
-        //IF THERE IS TIME MAKE THIS LESS BAD
-        //this polling solution isnt great but was the obvious way to avoid doing heavy lifting on the audio thread
-        //which would have been bad bc it delays the sound from palying exactly on the samples 
-        _beatTimer = new DispatcherTimer
+        if (DataContext is PracticePageViewModel vm)
         {
-            Interval = TimeSpan.FromMilliseconds(5) // fast enough for beats
-        };
-
-        _beatTimer.Tick += BeatTimer_Tick;
-        _beatTimer.Start();
-    }
-
-    //this is causing the app to crash whenever we enter the practicew page yay
-    private void BeatTimer_Tick(object? sender, EventArgs e)
-    {
-        if (DataContext is not PracticePageViewModel vm)
-            return;
-
-        if (SoundPlayer.Instance.GetSoundMixerNotificationQueue(vm) == null)
-            return;
-
-
-        while (SoundPlayer.Instance.GetSoundMixerNotificationQueue(vm).TryDequeue(out var frequency))
-        {
-            Console.WriteLine($"made it here {frequency}");
-            if (vm.LeftPatternNote == SoundPlayer.FrequencyToNote(frequency))
+            vm.GetSoundPlayer().soundPlayed += (frequency) =>
             {
-                AddBlock(Brushes.Green, true);
-            }
-            else if (vm.RightPatternNote == SoundPlayer.FrequencyToNote(frequency))
-            {
-                AddBlock(Brushes.Green, false);
-            }
-
+                Dispatcher.UIThread.Post(() => //on the audio thread until now, for some reason
+                {
+                    if (vm.LeftPatternNote == SoundPlayer.FrequencyToNote(frequency))
+                    {
+                        AddBlock(Brushes.Green, true);
+                    }
+                    else if (vm.RightPatternNote == SoundPlayer.FrequencyToNote(frequency))
+                    {
+                        AddBlock(Brushes.Green, false);
+                    }
+                });
+            };
         }
+
     }
 
 
@@ -164,7 +146,7 @@ public partial class PracticePage : UserControl
         {
             Background = colour,
             Width = 10,
-            Height = 80,
+            Height = 110,
             HorizontalAlignment = HorizontalAlignment.Left
         };
 
@@ -184,7 +166,7 @@ public partial class PracticePage : UserControl
     private async Task Move(Control rect, TranslateTransform transform, double targetX)
     {
         const double speed = 5;
-        const int delayMs = 16;
+        const int delayMs = 16; //60fps
 
         while (transform.X < targetX)
         {

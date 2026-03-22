@@ -7,8 +7,14 @@ using System.Threading.Tasks;
 
 namespace third_year_project.Services
 {
+
+    //this class is unused in the final project. still here as it was good for debugging and may be good for future work
     internal class IntArrayParser
     {
+        //this takes in the structure of a tree as a string and parses it to a 2d array in the correct format 
+        //this allows me to add trees in easily during testing
+
+       
         public static int[][] ParseTo2DIntArray(string treeStructure)
         {
             if (string.IsNullOrWhiteSpace(treeStructure))

@@ -8,6 +8,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,11 +24,24 @@ namespace third_year_project.Services
         private readonly object _lock = new();
         private object? _owner;
 
-        private SoundPlayer() { }
+        public event Action<double> soundPlayed;
 
-        // Try to become owner
+        private ISoundOut soundOut;
+        private ISoundOut liveSoundOut; //getting one sound engine to paly scheduled stuff and live stuff is hard, and apprently scheduling for right now doesnt work
+        private double bufferTime = 0.1; // seconds
+
+        public SoundMixer soundMixer;
+        public LiveSoundMixer liveSoundMixer;
+        private float noteAmplitude = 0.8f;
+        private int noteDurationMs = 200;
+        private const int SAMPLERATE = 44100;
+
+        //attepmt to become owner
         public bool TryAcquire(object requester)
         {
+            if(requester == null)
+                throw new ArgumentNullException(nameof(requester));
+
             lock (_lock)
             {
                 if (_owner == null)
@@ -35,12 +49,11 @@ namespace third_year_project.Services
                     _owner = requester;
                     return true;
                 }
-                Console.WriteLine("failed sound player acquisition (shouldnt happen!!!) ");
                 return false;
             }
         }
 
-        // Transfer ownership
+        //transfer ownership
         public bool Transfer(object currentOwner, object newOwner)
         {
             lock (_lock)
@@ -53,7 +66,7 @@ namespace third_year_project.Services
             }
         }
 
-        // Release ownership
+        //give up ownership
         public void Release(object requester)
         {
             lock (_lock)
@@ -71,17 +84,6 @@ namespace third_year_project.Services
             }
         }
 
-
-        private ISoundOut soundOut;
-        //private IWaveSource _waveSource;
-        //private string soundsFolder = Path.Combine(AppContext.BaseDirectory, "Sounds");
-        private double bufferTime = 0.1; // seconds
-
-        //private int kickPlayingInt = 0, snarePlaying;
-        public SoundMixer soundMixer;
-        private float noteAmplitude = 0.8f;
-        private int noteDurationMs = 200;
-
         //this needs to be called on every page that wants to use this
         public void Initialize(object requester)
         {
@@ -89,20 +91,34 @@ namespace third_year_project.Services
             {
                 return;
             }
-            soundMixer = new SoundMixer(44100);
+            soundMixer = new SoundMixer(SAMPLERATE);
             soundOut = new WasapiOut();
             soundOut.Initialize(soundMixer);
             soundOut.Play();
+
+            liveSoundMixer = new LiveSoundMixer(SAMPLERATE);
+            liveSoundOut = new WasapiOut();
+            liveSoundOut.Initialize(liveSoundMixer);
+            liveSoundOut.Play();
+
+            soundMixer.soundPlayed += (frequency) =>
+            {
+                soundPlayed?.Invoke(frequency); // Pass the frequency argument to the event
+            };
         }
         //general idea is that only one page will be using the soundplayer at a time.
-        //could look into locks for robustness 
 
+        public void PlayLiveNote(Note note)
+        {
+            Console.WriteLine("trying to play live note ");
+            liveSoundMixer.AddTone(NoteToFrequency(note), noteAmplitude, MsToSample(noteDurationMs));
+        }
 
-        public void scheduleNote(object requester, long sample, Note note)
+        public void ScheduleNote(object requester, long sample, Note note)
         {
             if (!IsOwner(requester))
             {
-                Console.WriteLine("An object tried to access soundplayer without being the owner");
+                Console.WriteLine("An object tried to access soundplayer schedule note without being the owner");
                 return;
             }
 
@@ -111,15 +127,21 @@ namespace third_year_project.Services
         }
 
         //tbh im all good if non owners wanna call these functions
-        public long msToSample(double ms)
+        public long MsToSample(double ms)
         {
-            return soundMixer.MsToSamples(ms);
+            if(ms < 0)
+                throw new ArgumentOutOfRangeException(nameof(ms));
+
+            return (long)(ms * SAMPLERATE / 1000.0);
         }
-        public double sampleToMs(long samples)
+        public double SampleToMs(long samples)
         {
-            return soundMixer.SamplesToMs(samples);
+            if (samples < 0)
+                throw new ArgumentOutOfRangeException(nameof(samples));
+
+            return (double)samples * 1000.0 / SAMPLERATE;
         }
-        public long getCurrentSample()
+        public long GetCurrentSample()
         {
             return soundMixer.SamplePosition;
         }
@@ -135,6 +157,10 @@ namespace third_year_project.Services
             {
                 note -= 12;
                 octave++;
+            }
+            if(octave > 9)
+            {
+                throw new ArgumentOutOfRangeException(nameof(note));
             }
             double frequency = 0;
             //Console.WriteLine(note);
@@ -178,7 +204,7 @@ namespace third_year_project.Services
                     break;
 
                 default:
-                    Console.WriteLine("error invalid note entry!");
+                    throw new InvalidDataException("error invalid note entry!");
                     break;
             }
             for (int i = 0; i < octave; i++)
@@ -194,11 +220,10 @@ namespace third_year_project.Services
             Note note = Note.C0;
             while(frequency > 31) //B0, the highest note in octave 0, has a frequency of 30.87
             {
-                Console.WriteLine(frequency);
                 octave++;
                 frequency = frequency / 2;
             }
-
+            frequency = Math.Round(frequency, 2); //round to 2 decimal places to avoid floating point precision issues messing with the switch statement
             switch (frequency)
             {
                 case 16.35:
@@ -239,66 +264,16 @@ namespace third_year_project.Services
                     break;
 
                 default:
-                    Console.WriteLine("error invalid note entry!");
+                    throw new InvalidDataException("error invalid note entry!");
                     break;
             }
             while(octave > 0)
             {
-                Console.WriteLine(octave);
                 octave -= 1;
                 note += 12;
             }
-            Console.WriteLine(note);
             return note;
         }
-
-        public ConcurrentQueue<double> GetSoundMixerNotificationQueue(object requester)
-        {
-            if (!IsOwner(requester))
-            {
-                Console.WriteLine("An object tried to access soundplayer without being the owner");
-                return null;
-            }
-            return soundMixer.NoteNotifications;
-        }
-        //public void PlayKick()
-        //{
-        //    //Console.WriteLine("kick playing is now " + kickPlayingInt);
-        //    if (Interlocked.CompareExchange(ref kickPlayingInt, 1, 0) == 1)
-        //        return;
-
-        //    Task.Delay(50).ContinueWith(_ =>
-        //    {
-        //        //Console.WriteLine("setting kick playing to false");
-        //        Interlocked.Exchange(ref kickPlayingInt, 0);
-        //    });
-        //    //Console.WriteLine("setting kick playing to treu");
-        //    // Decode MP3 → PCM
-        //    _waveSource = CodecFactory.Instance.GetCodec(Path.Combine(soundsFolder, "TMKD04 - dying_kick_01.mp3"))
-        //        .ToSampleSource()
-        //        .ToWaveSource();
-
-        //    // Output through WASAPI
-        //    _soundOut = new WasapiOut();
-        //    _soundOut.Initialize(_waveSource);
-
-        //    //kickPlaying = true;
-
-        //    _soundOut.Play();
-
-        //}
-
-        //public void PlaySnare()
-        //{
-        //    // Decode MP3 → PCM
-        //    _waveSource = CodecFactory.Instance.GetCodec(Path.Combine(soundsFolder, "TMKD_SnareYMCAN_dyn_L7_05.mp3"))
-        //        .ToSampleSource()
-        //        .ToWaveSource();
-        //    // Output through WASAPI
-        //    _soundOut = new WasapiOut();
-        //    _soundOut.Initialize(_waveSource);
-        //    _soundOut.Play();
-        //}
 
         public void Stop(object requester)
         {
@@ -311,173 +286,20 @@ namespace third_year_project.Services
             soundOut?.Stop();
             soundOut?.Dispose();
             soundOut = null;
+
+            liveSoundOut?.Stop();
+            liveSoundOut?.Dispose();
+            liveSoundOut = null;
+
             if (soundMixer != null)
             {
                 soundMixer.Dispose();
             }
-        }
-    }
-    public sealed class SineVoice
-    {
-        public double Phase;
-        public double PhaseIncrement;
-        public float Amplitude;
-        public long RemainingSamples;
-
-        public SineVoice(double frequency, float amplitude, int sampleRate, long durationSamples)
-        {
-            Phase = 0;
-            PhaseIncrement = 2.0 * Math.PI * frequency / sampleRate;
-            Amplitude = amplitude;
-            RemainingSamples = durationSamples;
-        }
-    }
-
-    public sealed class ScheduledAudioEvent
-    {
-        public long SampleTime;
-        public Action Trigger;
-    }
-
-    public sealed class SoundMixer : IWaveSource
-    {
-        private readonly int _sampleRate;
-        private readonly WaveFormat _format;
-
-        private readonly List<SineVoice> _voices = new();
-        private readonly object _voiceLock = new();
-
-        private readonly ConcurrentQueue<ScheduledAudioEvent> _events = new();
-
-        private long _samplePosition;
-        private readonly DateTime startTime = DateTime.UtcNow;
-        public DateTime StartTime => startTime;
-
-        ConcurrentQueue<double> _noteNotifications = new();
-        public ConcurrentQueue<double> NoteNotifications => _noteNotifications;
-
-
-        public SoundMixer(int sampleRate = 44100)
-        {
-            _sampleRate = sampleRate;
-            _format = new WaveFormat(sampleRate, 16, 1);
-        }
-
-        public long SamplePosition => Interlocked.Read(ref _samplePosition);
-
-        public WaveFormat WaveFormat => _format;
-        public bool CanSeek => false;
-        public long Length => long.MaxValue;
-
-        public long Position
-        {
-            get => SamplePosition * 2;
-            set { }
-        }
-
-        public void Schedule(long sampleTime, Action action)
-        {
-            _events.Enqueue(new ScheduledAudioEvent
+            if(liveSoundMixer != null)
             {
-                SampleTime = sampleTime,
-                Trigger = action
-            });
-        }
-
-        public void ScheduleInMs(double ms, Action action)
-        {
-            long samples = MsToSamples(ms);
-            Schedule(SamplePosition + samples, action);
-        }
-
-        public void ScheduleSine(long sampleTime, double frequency, float amplitude, double durationMs)
-        {
-            Schedule(sampleTime, () =>
-            {
-                long durationSamples = MsToSamples(durationMs);
-                lock (_voiceLock)
-                {
-                    _voices.Add(new SineVoice(
-                        frequency,
-                        amplitude,
-                        _sampleRate,
-                        durationSamples));
-                }
-                _noteNotifications.Enqueue(frequency);
-            });
-        }
-        public int Read(byte[] buffer, int offset, int count)
-        {
-            int samples = count / 2;
-            int written = 0;
-
-            for (int i = 0; i < samples; i++)
-            {
-                long currentSample = _samplePosition;
-
-                // Fire scheduled events exactly on this sample
-                while (_events.TryPeek(out var ev) &&
-                       ev.SampleTime <= currentSample)
-                {
-                    _events.TryDequeue(out ev);
-                    ev.Trigger();
-
-                    //OnAudioEventTriggered?.Invoke(currentSample);
-                }
-
-                float mixed = 0f;
-                int active = 0;
-
-                lock (_voiceLock)
-                {
-                    for (int v = _voices.Count - 1; v >= 0; v--)
-                    {
-                        var voice = _voices[v];
-
-                        if (voice.RemainingSamples <= 0)
-                        {
-                            _voices.RemoveAt(v);
-                            continue;
-                        }
-
-                        mixed += (float)Math.Sin(voice.Phase) * voice.Amplitude;
-                        active++;
-
-                        voice.Phase += voice.PhaseIncrement;
-                        if (voice.Phase > Math.PI * 2)
-                            voice.Phase -= Math.PI * 2;
-
-                        voice.RemainingSamples--;
-                    }
-                }
-
-                if (active > 1)
-                    mixed /= active;
-
-                mixed = Math.Clamp(mixed, -1f, 1f);
-
-                short sample = (short)(mixed * short.MaxValue);
-                buffer[offset + written++] = (byte)(sample & 0xff);
-                buffer[offset + written++] = (byte)(sample >> 8);
-
-                Interlocked.Increment(ref _samplePosition);
-            }
-
-            return written;
-        }
-
-        public void Dispose()
-        {
-            lock (_voiceLock)
-            {
-                _voices.Clear();
+                liveSoundMixer.Dispose();
             }
         }
-        public long MsToSamples(double ms)
-            => (long)(ms * _sampleRate / 1000.0);
-
-        public double SamplesToMs(long samples)
-            => samples * 1000.0 / _sampleRate;
     }
 
 }

@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace third_year_project.ViewModels
 {
-    internal class LevelSelectViewModel : ReactiveObject
+    internal class LevelSelectViewModel : ViewModelBase
     {
         public ReactiveCommand<Unit, Unit> HomeClick { get; }
 
@@ -19,14 +19,12 @@ namespace third_year_project.ViewModels
         {
             HomeClick = ReactiveCommand.Create(() =>
             {
-                //Console.WriteLine("Returning to home page");
                 mainWindowVM.CurrentPage = new HomePageViewModel(mainWindowVM);
             }, outputScheduler: AvaloniaScheduler.Instance);
 
             LevelClick = ReactiveCommand.Create<string>(level =>
             {
                 List<int[][]> rhythm = new List<int[][]>();
-                Console.WriteLine($"clicked level {level}");
                 switch (level)
                 {
                     case "1": //bohemian rhapsody
@@ -50,7 +48,6 @@ namespace third_year_project.ViewModels
                         rhythm = new List<int[][]>([[[16], [4, 4, 4, 4], Enumerable.Repeat(1, 16).ToArray()]]);
                         break;
                 }
-                //Console.WriteLine("Level selected, going to practice page");
                 if(learnPage)
                     mainWindowVM.CurrentPage = new LearnPageViewModel(mainWindowVM, rhythm);
                 else

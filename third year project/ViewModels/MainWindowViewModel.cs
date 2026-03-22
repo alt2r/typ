@@ -10,7 +10,7 @@ using third_year_project.Services;
 
 namespace third_year_project.ViewModels
 {
-    public partial class MainWindowViewModel : ReactiveObject
+    public partial class MainWindowViewModel : ViewModelBase
     {
 
         private ReactiveObject _currentPage;

@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace third_year_project.ViewModels
 {
-    internal class SettingsPageViewModel : ReactiveObject
+    internal class SettingsPageViewModel : ViewModelBase
     {
         public ReactiveCommand<Unit, Unit> HomeClick { get; }
 
