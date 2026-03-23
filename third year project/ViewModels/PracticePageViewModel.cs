@@ -19,7 +19,7 @@ using third_year_project.Views;
 
 namespace third_year_project.ViewModels
 {
-    internal class PracticePageViewModel : ViewModelBase
+    public class PracticePageViewModel : ViewModelBase
     {
         SoundPlayer soundPlayer = SoundPlayer.Instance;
         Key leftKey = Key.A;

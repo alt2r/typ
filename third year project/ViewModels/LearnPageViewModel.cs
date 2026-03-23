@@ -1,22 +1,22 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
-using Avalonia.Media;
-using Avalonia.Threading;
 using ReactiveUI;
 using ReactiveUI.Avalonia;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reactive;
+using System.Reactive.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using third_year_project.Controls;
 using third_year_project.Services;
+
 namespace third_year_project.ViewModels
 {
     public class LearnPageViewModel : ViewModelBase
     {
-
         private Control _currentDiagram;
         public Control CurrentDiagram
         {
@@ -24,15 +24,15 @@ namespace third_year_project.ViewModels
             set => this.RaiseAndSetIfChanged(ref _currentDiagram, value);
         }
 
-        SoundPlayer soundPlayer = SoundPlayer.Instance;
-        double lookAheadMs = 200; //basically we want to schedule sounds a bit in advance to avoid latency issues
-        //also this wants to change based on the bpm apparently. 120bpm quite likes around 200 so gonna call it an even * 2
+        readonly ISoundPlayer soundPlayer;
+        readonly IAppDispatcher dispatcher;
+        double lookAheadMs = 200;
         long startSample = 0;
 
         int[] leftPattern;
         int[] rightPattern;
-        private DispatcherTimer? leftTimer;
-        private DispatcherTimer? rightTimer;
+        private Avalonia.Threading.DispatcherTimer? leftTimer;
+        private Avalonia.Threading.DispatcherTimer? rightTimer;
 
         private int _bpmSliderValue = 120;
         public int BpmSliderValue
@@ -42,19 +42,19 @@ namespace third_year_project.ViewModels
         }
         public ReactiveCommand<Unit, Unit> SwitchCommand { get; }
         public ReactiveCommand<Unit, Unit> HomeClick { get; }
-        public ReactiveCommand<Unit, Unit> PracticeClick { get;  }
+        public ReactiveCommand<Unit, Unit> PracticeClick { get; }
 
         bool running = false;
 
-        //private List<int[][]> rhythmToDisplay = new List<int[][]>();
+        //store handler so we can unsubscribe later
+        private Action<double>? _soundPlayedHandler;
 
         public void setRhythmToDisplay(List<int[][]> rhythm)
         {
-            //rhythmToDisplay = rhythm;
             Grid treegrid = (Grid)((Border)tree).Child;
             treegrid.Children.Clear();
             int[][] clockStruc = new int[rhythm.Count][];
-            string[] notes = new string[] { "c4", "f4" }; //controllers for this coming 
+            string[] notes = new string[] { "c4", "f4" };
             int counter = 0;
             foreach (int[][] treeStruc in rhythm)
             {
@@ -63,7 +63,7 @@ namespace third_year_project.ViewModels
                     HorizontalAlignment = HorizontalAlignment.Stretch,
                     [Grid.ColumnProperty] = counter
                 });
-                clockStruc[counter] = treeStruc[treeStruc.Length - 2];  //the lowest division of the beat that isnt the row of all 1's
+                clockStruc[counter] = treeStruc[treeStruc.Length - 2];
                 counter++;
             }
             leftPattern = clockStruc[0];
@@ -85,15 +85,29 @@ namespace third_year_project.ViewModels
         private readonly Control clock = new Border
         {
             Padding = new Thickness(25)
-
         };
 
+        //constructor for actual use
         public LearnPageViewModel(MainWindowViewModel mainWindowVM, List<int[][]> rhythm)
+            : this(mainWindowVM, rhythm, new SoundPlayerAdapter(), new AvaloniaDispatcher(), performAcquire: true)
         {
-            while(!soundPlayer.TryAcquire(this)) //this surely wont cause an infinite loop right? :clueless:
-            { Task.Delay(500); }
+        }
 
-            soundPlayer.Initialize(this);
+        //constructor for testing 
+        public LearnPageViewModel(MainWindowViewModel mainWindowVM, List<int[][]> rhythm, ISoundPlayer soundPlayer, IAppDispatcher dispatcher, bool performAcquire = false)
+        {
+            this.soundPlayer = soundPlayer ?? throw new ArgumentNullException(nameof(soundPlayer));
+            this.dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
+
+            if (performAcquire)
+            {
+                while (!this.soundPlayer.TryAcquire(this))
+                {
+                    Thread.Sleep(200); //wait until we acquire 
+                }
+                this.soundPlayer.Initialize(this);
+            }
+
             setRhythmToDisplay(rhythm);
 
             HomeClick = ReactiveCommand.Create(() =>
@@ -103,17 +117,16 @@ namespace third_year_project.ViewModels
 
             PracticeClick = ReactiveCommand.Create(() =>
             {
-                soundPlayer.Release(this);
+                this.soundPlayer.Release(this);
                 mainWindowVM.CurrentPage = new PracticePageViewModel(mainWindowVM, rhythm);
             }, outputScheduler: AvaloniaScheduler.Instance);
 
-            _currentDiagram = clock; // set initial control
+            _currentDiagram = clock;
 
             SwitchCommand = ReactiveCommand.Create(execute: () =>
             {
-                CurrentDiagram = CurrentDiagram == tree ? clock : tree; //switcharoo
+                CurrentDiagram = CurrentDiagram == tree ? clock : tree;
 
-                //carry over the bpm
                 if (CurrentDiagram is Border border && border.Child is ClockDiagram cd)
                 {
                     cd.SetBpm(_bpmSliderValue);
@@ -126,48 +139,46 @@ namespace third_year_project.ViewModels
                     }
                 }
                 resetDiagram();
-                
+
             }, outputScheduler: AvaloniaScheduler.Instance);
 
-
             this.WhenAnyValue(x => x.BpmSliderValue)
-            .Subscribe(val =>
-            {
-                // This runs whenever the slider moves and on load apparently
-                StopBeepingCycles();
-                StartBeepingCycles();
-
-                if (CurrentDiagram == tree)
+                .Skip(1) //do not run immediately on subscription. oh my god this caused so many issues.
+                .Subscribe(val =>
                 {
-                    Grid treegrid = (Grid)((Border)tree).Child;
-                    foreach (TreeDiagram t in treegrid.Children)
+                    StopBeepingCycles();
+                    StartBeepingCycles();
+
+                    if (CurrentDiagram == tree)
                     {
-                        t.SetBpm(val);
+                        Grid treegrid = (Grid)((Border)tree).Child;
+                        foreach (TreeDiagram t in treegrid.Children)
+                        {
+                            t.SetBpm(val);
+                        }
                     }
-                }
-                else
-                {
-                    Border clockBorder = (Border)CurrentDiagram;
-                    ClockDiagram cd = (ClockDiagram)clockBorder.Child;
-                    cd.SetBpm(val);
-                }
-                lookAheadMs = val * 2;
-                running = false;
-            });
+                    else
+                    {
+                        Border clockBorder = (Border)CurrentDiagram;
+                        if (clockBorder.Child is ClockDiagram cd)
+                            cd.SetBpm(val);
+                    }
+                    lookAheadMs = val * 2;
+                    running = false;
+                });
 
-            soundPlayer.soundPlayed += (frequency) => //frequency isnt used here tho
+            _soundPlayedHandler = (frequency) =>
             {
                 if (!running)
                 {
-                    Dispatcher.UIThread.Post(() =>
+                    dispatcher.Post(() =>
                     {
-
                         running = true;
                         if (CurrentDiagram == clock)
                         {
                             Border clockBorder = (Border)CurrentDiagram;
                             var cd = (ClockDiagram)clockBorder.Child;
-                            cd?.OnControlSwitched(); //resets hand position
+                            cd?.OnControlSwitched();
                             cd?.StartSpinningCycle();
                         }
                         else
@@ -178,22 +189,20 @@ namespace third_year_project.ViewModels
                                 t.ResetFlashCycle();
                             }
                         }
-
                     });
                 }
             };
+            soundPlayer.SoundPlayed += _soundPlayedHandler;
 
+            //start doing stuff initially 
+            if (performAcquire)
+            {
+                StartBeepingCycles();
+            }
         }
 
-        public int[] GetLeftPattern()
-        {
-            return leftPattern;
-        }
-
-        public int[] GetRightPattern()
-        {
-            return rightPattern;
-        }
+        public int[] GetLeftPattern() => leftPattern;
+        public int[] GetRightPattern() => rightPattern;
 
         private void resetDiagram()
         {
@@ -215,19 +224,20 @@ namespace third_year_project.ViewModels
 
         public void StartBeepingCycles()
         {
-            soundPlayer.Initialize(this);
-            double beatMs = (60000.0 / _bpmSliderValue) / 2; //it should be over 4 but for some reason that was making it twice as fast dont even ask why
-            //double rightBeatMs = ((60000.0 * rightPattern.Sum() / leftPattern.Sum()) / _bpmSliderValue) / 2;
+            //don't start twice
+            if (leftTimer != null || rightTimer != null)
+                return;
 
-            int leftSixteenthNoteCounter = 0; //counts sixteenth notes in between the beats
-            int leftPatternIndex = 0; //what note of the looping pattern we are currently on
+            soundPlayer.Initialize(this);
+            double beatMs = (60000.0 / _bpmSliderValue) / 2;
+
+            int leftSixteenthNoteCounter = 0;
+            int leftPatternIndex = 0;
             int leftBeatNumber = 0;
-            TimeSpan interval = TimeSpan.FromMilliseconds(beatMs * 0.9); //may need a -100 here as a buffer?
-                                                                         //yes the longer it runs the further ahead of real time the schedule queue will get but i dont think its that much of a bad thing atp
+            TimeSpan interval = TimeSpan.FromMilliseconds(beatMs * 0.9);
             startSample = soundPlayer.GetCurrentSample() + soundPlayer.MsToSample(lookAheadMs);
-            leftTimer = new DispatcherTimer(interval, DispatcherPriority.Normal, (s, e) =>
+            leftTimer = new Avalonia.Threading.DispatcherTimer(interval, Avalonia.Threading.DispatcherPriority.Normal, (s, e) =>
             {
-                
                 if (leftPattern[leftPatternIndex] == leftSixteenthNoteCounter)
                 {
                     leftSixteenthNoteCounter = 0;
@@ -236,23 +246,22 @@ namespace third_year_project.ViewModels
                     {
                         leftPatternIndex = 0;
                     }
-
                 }
                 if (leftSixteenthNoteCounter == 0)
                 {
-                    long beatSample = startSample + soundPlayer.MsToSample(leftBeatNumber * beatMs); //-100 because keyboard input delay? idk this might be wrong still
+                    long beatSample = startSample + soundPlayer.MsToSample(leftBeatNumber * beatMs);
                     soundPlayer.ScheduleNote(this, beatSample, Note.C4);
                 }
                 leftSixteenthNoteCounter++;
                 leftBeatNumber++;
             });
 
-            int rightSixteenthNoteCounter = 0; //counts sixteenth notes in between the beats
-            int rightPatternIndex = 0; //what note of the looping pattern we are currently on
+            int rightSixteenthNoteCounter = 0;
+            int rightPatternIndex = 0;
             int rightBeatNumber = 0;
 
             startSample = soundPlayer.GetCurrentSample() + soundPlayer.MsToSample(lookAheadMs);
-            rightTimer = new DispatcherTimer(interval, DispatcherPriority.Normal, (s, e) =>
+            rightTimer = new Avalonia.Threading.DispatcherTimer(interval, Avalonia.Threading.DispatcherPriority.Normal, (s, e) =>
             {
                 if (rightPattern[rightPatternIndex] == rightSixteenthNoteCounter)
                 {
@@ -262,23 +271,25 @@ namespace third_year_project.ViewModels
                     {
                         rightPatternIndex = 0;
                     }
-
                 }
                 if (rightSixteenthNoteCounter == 0)
                 {
-                    long beatSample = startSample + soundPlayer.MsToSample(rightBeatNumber * beatMs); //-100 because keyboard input delay? idk this might be wrong still
+                    long beatSample = startSample + soundPlayer.MsToSample(rightBeatNumber * beatMs);
                     soundPlayer.ScheduleNote(this, beatSample, Note.F4);
                 }
                 rightSixteenthNoteCounter++;
                 rightBeatNumber++;
             });
-
         }
-
 
         public void StopBeepingCycles()
         {
+            //only stop if we actually started timers (and thus initialized)
+            if (leftTimer == null && rightTimer == null)
+                return;
+
             soundPlayer.Stop(this);
+
             if (leftTimer != null)
             {
                 leftTimer.Stop();
@@ -294,6 +305,12 @@ namespace third_year_project.ViewModels
 
         public void OnViewClosed()
         {
+            if (_soundPlayedHandler != null)
+            {
+                soundPlayer.SoundPlayed -= _soundPlayedHandler;
+                _soundPlayedHandler = null;
+            }
+
             StopBeepingCycles();
             soundPlayer.Release(this);
         }
