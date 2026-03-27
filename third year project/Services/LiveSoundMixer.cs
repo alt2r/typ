@@ -7,8 +7,8 @@ using System.Threading.Tasks;
 
 namespace third_year_project.Services
 {
-    //    //so this is some old code from a piano i built while researching frameworks for this project, reusing it is the fastest way to
-    //    //get user input to make sound in the practice page
+    //so this is some old code from a piano i built while researching frameworks for this project, reusing it is the fastest way to
+    //get user input to make sound in the practice page
 
     public class LiveSoundMixer : IWaveSource
     {
@@ -45,7 +45,7 @@ namespace third_year_project.Services
             get { return false; }
         }
 
-        public void AddTone(double frequency, float amplitude, long duration)
+        public void AddTone(double frequency, double amplitude, long duration)
         {
             lock (_lock)
             {
@@ -54,11 +54,13 @@ namespace third_year_project.Services
 
         }
 
+        //unused but great if we want to add notes with infinite duration and stop them later
+        //for example, have the note play for as long as the user holds the key down, then stop when they release it
         public void StopTone(Note noteValue)
         {
             lock (_lock)
             {
-                for (int i = 0; i < activeTones.Count; i++) //this is a shit way of doing it
+                for (int i = 0; i < activeTones.Count; i++)
                 {
                     if (activeTones[i].note == noteValue)
                     {

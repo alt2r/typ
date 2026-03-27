@@ -16,8 +16,8 @@ namespace third_year_project.Views;
 public partial class SandboxPage : UserControl
 {
     SandboxPageViewModel vm;
-    Node leftTree;
-    Node rightTree;
+    INode? leftTree;
+    INode? rightTree;
 
     TextBox[,] textBoxReferencesLeft = new TextBox[5, 8];
     public SandboxPage()
@@ -31,7 +31,7 @@ public partial class SandboxPage : UserControl
                 vm.AddNodeInView.RegisterHandler(interaction =>
                 {
                     interaction.SetOutput(Unit.Default);
-                    AddNode(interaction.Input); //ascii conversion since int parse is being difficult
+                    AddNode(interaction.Input);
                 });
 
                 vm.AddRowInView.RegisterHandler(interaction =>
@@ -42,8 +42,11 @@ public partial class SandboxPage : UserControl
 
                 textBoxReferencesLeft[0, 0] = leftStartBox;
 
-                vm.leftRootNode = new Node(vm.leftRootNode, leftRootStackPanel, leftRootHorizontal, leftStartBox);
-                vm.rightRootNode = new Node(vm.rightRootNode, rightRootStackPanel, rightRootHorizontal, rightStartBox);
+                var leftRoot = new Node(null, leftRootStackPanel, leftRootHorizontal, leftStartBox);
+                var rightRoot = new Node(null, rightRootStackPanel, rightRootHorizontal, rightStartBox);
+
+                vm.leftRootNode = leftRoot;
+                vm.rightRootNode = rightRoot;
 
                 leftTree = vm.leftRootNode;
                 rightTree = vm.rightRootNode;
@@ -74,27 +77,21 @@ public partial class SandboxPage : UserControl
 
         };
     }
+    private void AddNode(INode parent)
+    {
+        if (parent is not Node parentNode)
+            return;
 
-    private Node GetNodeAtPosition(Node tree, string position)
-    {
-        if (position.Length == 0)
-        { //this needs validation bro (from past harry)
-            return tree;
-        }
-        return GetNodeAtPosition(tree.GetChildren()[Convert.ToInt32(position[0])], position[1..]);
-    }
-    private void AddNode(Node parent)
-    {
         TextBox textBox = new TextBox
         {
             Height = 40,
-            Width = 40,
+            Width = 30,
             MinWidth = 0,
-            MaxWidth =40,
+            MaxWidth = 30,
             Watermark = "...",
             Margin = Avalonia.Thickness.Parse("3,10,3,10")
         };
-        Node node = new Node(parent, textBox);
+        Node node = new Node(parentNode, textBox);
         Button plus = new Button
         {
             Content = "+",
@@ -104,12 +101,16 @@ public partial class SandboxPage : UserControl
 
         plus.Command = vm.NewRow;
         plus.CommandParameter = node;
-        parent.AddChildNode(node);
-        node.AddControlBelow(plus);
+        parentNode.AddChildNode(node);
+
+        if (node.GetDepthOfThisNode() < 4)
+            node.AddControlBelow(plus);
     }
 
-    private void AddRow(Node nodeCalledOn)
+    private void AddRow(INode nodeCalledOn)
     {
+        if (nodeCalledOn is not Node node)
+            return;
 
         Button plus = new Button
         {
@@ -119,13 +120,12 @@ public partial class SandboxPage : UserControl
             Command = vm.NewNode,
             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
             Padding = Avalonia.Thickness.Parse("4")
-
         };
         plus.CommandParameter = nodeCalledOn;
         AddNode(nodeCalledOn);
         AddNode(nodeCalledOn);
-        nodeCalledOn.AddControlBeside(plus);
-        nodeCalledOn.RemoveFromVertical(); //remove the button we just clicked
+        node.AddControlBeside(plus);
+        node.RemoveFromVertical(); //remove the button we just clicked
 
     }
 }

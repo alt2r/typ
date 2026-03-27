@@ -20,15 +20,10 @@ namespace third_year_project.ViewModels
             set => this.RaiseAndSetIfChanged(ref _currentPage, value);
         }
 
-
-        public string Greeting { get; } = "Welcome to Avalonia!";
-
         public MainWindowViewModel()
         {
             CurrentPage = new HomePageViewModel(this);
-            SoundPlayer soundPlayer; //really great to set this up somewhere on load
 
         }
-
     }
 }

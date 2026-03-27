@@ -28,14 +28,9 @@
 		</PackageReference>
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1" />
 		<PackageReference Include="CSCore" Version="1.2.1.2" />
+		<PackageReference Include="Melanchall.DryWetMidi" Version="8.0.3" />
 		<PackageReference Include="ReactiveUI" Version="22.2.1" />
 		<PackageReference Include="ReactiveUI.Avalonia" Version="11.3.0" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Content Include="Sounds\**\*.*">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</Content>
 	</ItemGroup>
 	
 </Project>

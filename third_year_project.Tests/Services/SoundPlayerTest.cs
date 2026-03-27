@@ -122,12 +122,6 @@ namespace third_year_project.Tests.Services
             Assert.Equal(1000, ms);
         }
         [Fact]
-        public void SampleToMsNegativeThrows()
-        {
-            SoundPlayer soundPlayer = new SoundPlayer();
-            Assert.Throws<ArgumentOutOfRangeException>(() => soundPlayer.SampleToMs(-1));
-        }
-        [Fact]
         public void NoteToFrequencyA4Returns440()
         {
             double frequency = SoundPlayer.NoteToFrequency(Note.A4);

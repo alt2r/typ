@@ -68,6 +68,62 @@ public partial class PracticePage : UserControl
                     }
                 });
             };
+
+            vm.midiAction += (note) =>
+            {
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (vm.LeftPatternNote == note)
+                    {
+                        AddBlock(Brushes.Red, true);
+                        double distanceFromBeat = vm.OnKeyDown(vm.GetLeftKey()); 
+                        double timeBetweenBeats = 60000 / (float)bpm; //measuered in ms
+                        if (distanceFromBeat < inTimeRange && distanceFromBeat > -inTimeRange)
+                        {
+                            LeftTopText.Text = $"Good";
+                            LeftTopText.Foreground = Avalonia.Media.Brushes.Green;
+                            LeftBottomText.Text = $"";
+                        }
+                        else if (distanceFromBeat > inTimeRange)
+                        {
+                            LeftTopText.Text = $"Early";
+                            LeftTopText.Foreground = Avalonia.Media.Brushes.Red;
+                            LeftBottomText.Text = $"{distanceFromBeat}ms";
+                        }
+                        else
+                        {
+                            LeftTopText.Text = $"Late";
+                            LeftTopText.Foreground = Avalonia.Media.Brushes.Red;
+                            LeftBottomText.Text = $"{Math.Abs(distanceFromBeat)}ms";
+                        }
+                    }
+                    else if (vm.RightPatternNote == note)
+                    {
+                        AddBlock(Brushes.Red, false);
+                        double distanceFromBeat = vm.OnKeyDown(vm.GetRightKey());
+
+                        double timeBetweenBeats = 60000 / (float)bpm; //measuered in ms
+                        if (distanceFromBeat < inTimeRange && distanceFromBeat > -inTimeRange)
+                        {
+                            RightTopText.Text = $"Good";
+                            RightTopText.Foreground = Avalonia.Media.Brushes.Green;
+                            RightBottomText.Text = $"";
+                        }
+                        else if (distanceFromBeat > inTimeRange)
+                        {
+                            RightTopText.Text = $"Early";
+                            RightTopText.Foreground = Avalonia.Media.Brushes.Red;
+                            RightBottomText.Text = $"{distanceFromBeat}ms";
+                        }
+                        else
+                        {
+                            RightTopText.Text = $"Late";
+                            RightTopText.Foreground = Avalonia.Media.Brushes.Red;
+                            RightBottomText.Text = $"{Math.Abs(distanceFromBeat)}ms";
+                        }
+                    }
+                });
+            };
         }
 
     }
@@ -139,33 +195,47 @@ public partial class PracticePage : UserControl
         }
     }
 
-
     private async Task AddBlock(IImmutableSolidColorBrush colour, bool left)
     {
+        int height = 110;
+        int width = 10;
+        int zIndex = 1;
+        if (colour == Brushes.Green)
+        {
+            height = 150;
+            width = 18;
+            zIndex = 0; //put the green ones behiond the red
+        }
         var rect = new Border
         {
             Background = colour,
-            Width = 10,
-            Height = 110,
-            HorizontalAlignment = HorizontalAlignment.Left
+            Width = width,
+            Height = height,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            ZIndex = zIndex
         };
 
         var transform = new TranslateTransform();
         rect.RenderTransform = transform;
 
-        if(left)
-        leftDisplay.Children.Add(rect);
+        if (left)
+        {
+            leftDisplay.Children.Add(rect);
+            await Move(rect, transform, leftDisplay.Width, leftDisplay);
+        }
         else
-        rightDisplay.Children.Add(rect);
+        {
+            rightDisplay.Children.Add(rect);
+            await Move(rect, transform, leftDisplay.Width, rightDisplay);
+        }
 
-        await Move(rect, transform, leftDisplay.Width);
+        
 
-        leftDisplay.Children.Remove(rect);
     }
 
-    private async Task Move(Control rect, TranslateTransform transform, double targetX)
+    private async Task Move(Control rect, TranslateTransform transform, double targetX, Panel panel)
     {
-        const double speed = 5;
+        double speed = ((bpm / 24.0) + 5) / 2.0; //want bpm to have some effect but dont want it to get too fast/slow
         const int delayMs = 16; //60fps
 
         while (transform.X < targetX)
@@ -173,5 +243,6 @@ public partial class PracticePage : UserControl
             transform.X += speed;
             await Task.Delay(delayMs);
         }
+        panel.Children.Remove(rect);
     }
 }

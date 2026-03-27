@@ -20,7 +20,6 @@ namespace third_year_project.ViewModels
 
         public HomePageViewModel(MainWindowViewModel mainWindowVM)
         {
-            // Ensure notifications and command results are scheduled on the Avalonia UI scheduler
             LearnClick = ReactiveCommand.Create(() =>
             {
                 mainWindowVM.CurrentPage = new LevelSelectViewModel(mainWindowVM, true);

@@ -37,7 +37,6 @@ public partial class LearnPage : UserControl
             }
             LeftBottomDiagramDesc.Text = left;
             RightBottomDiagramDesc.Text = right;
-            Console.WriteLine("text should be updaetd ");
         }
     }
 

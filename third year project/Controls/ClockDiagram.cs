@@ -112,14 +112,8 @@ namespace third_year_project.Controls
         //these wonderful functions place the control in the center of the available space instead of the alternative of giving it a width and height of 0
         protected override Size MeasureOverride(Size availableSize)
         {
-
-            //updateBounds = true;
-            //clockDrawn = false;
             double w = double.IsInfinity(availableSize.Width) ? 100 : availableSize.Width * bufferZone;
             double h = double.IsInfinity(availableSize.Height) ? 100 : availableSize.Height * bufferZone;
-            //StopSpinningCycle();
-            //InvalidateVisual();
-            //Console.WriteLine("updating bounds :)");
 
             return new Size(w, h);
 
@@ -132,7 +126,7 @@ namespace third_year_project.Controls
 
         public override void Render(DrawingContext _context)
         {
-            if (updateBounds) //this is a little hack to get the red lines to draw in the right place there was some issue with the black lines having local positions and the red ones being based on the global position (which i have no idea why that would be the case) but this seems to fix it
+            if (updateBounds) 
             {
                 offset = (Point)this.TranslatePoint(new Point(0, 0), this.GetVisualRoot() as Visual);
                 updateBounds = false;
@@ -176,18 +170,6 @@ namespace third_year_project.Controls
 
                     //would be great to do this in the middle of each section would need to actually lock in and think 
                     FormattedText formatted = new FormattedText(Convert.ToString(structure[i][j]), CultureInfo.CurrentCulture, FlowDirection.LeftToRight, new Typeface("Segoe UI"), 18, Brushes.Black);
-                    //double textX = center.X;
-                    //double textY = center.Y;
-                    //if (j == structure[i].Length - 1)
-                    //{
-                    //    textX += (int)radiusPlural[i] * (MathF.Sin(thetaOfLine) + MathF.Sin((float)beatPositionsOnCircles[i][0]) / 2);
-                    //    textY += (int)radiusPlural[i] * (MathF.Cos(thetaOfLine) + MathF.Cos((float)beatPositionsOnCircles[i][0]) / 2);
-                    //}
-                    //else
-                    //{
-                    //    textX += (int)radiusPlural[i] * (MathF.Sin(thetaOfLine) + MathF.Sin((float)beatPositionsOnCircles[i][j + 1]) / 2);
-                    //    textY += (int)radiusPlural[i] * (MathF.Cos(thetaOfLine) + MathF.Cos((float)beatPositionsOnCircles[i][j + 1]) / 2);
-                    //}
                     context.DrawText(formatted, new Point(innerX, innerY));
                     totalSoFar += structure[i][j];
                 }
@@ -196,7 +178,6 @@ namespace third_year_project.Controls
 
             if (!clockDrawn)
             {
-                //StartSpinningCycle(bpm);
                 clockDrawn = true;
             }
         }
@@ -207,32 +188,14 @@ namespace third_year_project.Controls
             StopSpinningCycle();
         }
 
-
-
-        //do we still need this?
-        //protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
-        //{
-        //    //when we resize the window we want to redraw
-        //    base.OnPropertyChanged(change);
-        //    if (change.Property == BoundsProperty)
-        //    {
-        //        Console.WriteLine("on property changed");
-        //        updateBounds = true;
-        //        clockDrawn = false;
-        //        StopSpinningCycle();
-        //        InvalidateVisual();
-        //    }
-        //}
         private DispatcherTimer? spinTimer;
         public void StartSpinningCycle()
         {
 
-            StopSpinningCycle(); // make sure we don't start twice
+            StopSpinningCycle(); //make sure we don't start twice
 
-            var interval = TimeSpan.FromSeconds(1.0 / 144.0); // aiming for 144fps since my screen is 144hz
-
+            var interval = TimeSpan.FromSeconds(1.0 / 144.0);
             DateTime tick = DateTime.Now;
-
             double[] previousFrameThetas = Enumerable.Repeat(0.5 * MathF.PI, structure.Count()).ToArray();
 
             spinTimer = new DispatcherTimer(interval, DispatcherPriority.Normal, (s, e) =>
@@ -250,22 +213,10 @@ namespace third_year_project.Controls
                     double movespeed = (bpm * MathF.PI)/ ((double)beatCounts[i] * 15.0);
                     thetas[i] += (float)(elapsed.TotalSeconds * movespeed); //each hand spins at a different speed
 
-                    //if the hand has just passed a beat point then play a sound
-                    for (int j = 0; j < structure[i].Length; j++)
-                    {
-                        foreach(double beat in beatPositionsOnCircles[i])
-                        {
-                            if (previousFrameThetas[i] <= beat && beat <= thetas[i])
-                            {
-                                //soundPlayer.scheduleNote(soundPlayer.getCurrentSample(), notes[i]);
-                            }
-                        }
-                    }
                     previousFrameThetas[i] = thetas[i];
                     if (thetas[i] > MathF.PI * 1.5) //when we cross the 0 point
                     {
                         thetas[i] -= MathF.PI * 2;
-                        //soundPlayer.scheduleNote(soundPlayer.getCurrentSample(), notes[i]);
                     }
                 }
                 this.InvalidateVisual();
@@ -273,7 +224,6 @@ namespace third_year_project.Controls
         }
         public void StopSpinningCycle()
         {
-            Console.WriteLine("in stop spinning");
             if (spinTimer != null)
             {
                 spinTimer.Stop();
@@ -290,7 +240,6 @@ namespace third_year_project.Controls
             if (!clockDrawn)
             {
                 clockDrawn = false;
-                Console.WriteLine("stop spinning bc setting bpm");
                 StopSpinningCycle();
                 InvalidateVisual();
             }

@@ -11,13 +11,11 @@
 	
 
 	<Design.DataContext>
-		<!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
 		<vm:HomePageViewModel/>
 	</Design.DataContext>
 	
 	
-	<!-- Button mesh -->
+	<!--Buttons-->
 	<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="20">
 		<Border BorderBrush="{StaticResource BlackBrush}">
 			<TextBlock Text="Polyrhythm Trainer X" FontSize="32" HorizontalAlignment="Center" TextAlignment="Center" Padding="10"
@@ -36,31 +34,24 @@
 		</Grid.RowDefinitions>
 
 		<!--left big button-->
-		<Button
-				Width="150" Height="210" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+		<Button Width="150" Height="210" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
 				Content="Learn" FontFamily="{StaticResource PrimaryFontFamily}"	Command="{Binding LearnClick}"
 				Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Margin="5"/>
 
 		<!--right top button -->
-		<Button
-				Width="200" Height="100" HorizontalContentAlignment="Center"
+		<Button Width="200" Height="100" HorizontalContentAlignment="Center"
 				VerticalContentAlignment="Center" Content="Practice" Command="{Binding PracticeClick}"
 				Grid.Row="0" Grid.Column="1" Margin="5"/>
 
 		<!--right bottom button-->
-		<Button
-				Width="200" Height="100" HorizontalContentAlignment="Center"
+		<Button Width="200" Height="100" HorizontalContentAlignment="Center"
 				VerticalContentAlignment="Center" Content="Sandbox Mode"
 				Command="{Binding SandboxClick}" Grid.Row="1" Grid.Column="1" Margin="5"/>
 		<ContentControl x:Name="PageHost" Grid.Row="1"/>
 
 	</Grid>
-
-		<StackPanel Orientation="Horizontal"
-			   HorizontalAlignment="Right"
-			   VerticalAlignment="Bottom"
-			   Margin="0 0 16 16"
-			   Spacing="8">
+		<StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
+			   VerticalAlignment="Bottom" Margin="0 0 16 16" Spacing="8">
 
 				<Button Content="Info" Command="{Binding InfoClick}"/>
 				<Button Content="Settings" Command="{Binding SettingsClick}"/>

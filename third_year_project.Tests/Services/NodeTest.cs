@@ -22,7 +22,7 @@ public class NodeTest //mostly a ui service so we dont need that many tests
     public void NewNodeHasDepth1()
     {
         Node node = new Node(null, new TextBox());
-        Assert.Equal(1, node.GetDepth());
+        Assert.Equal(1, node.GetDepthOfSubtree());
     }
     [Fact]
     public void AddChildAddsOneChild()
@@ -38,7 +38,7 @@ public class NodeTest //mostly a ui service so we dont need that many tests
         Node node = new Node(null, new TextBox());
         node.AddChildNode(new Node(node, new TextBox()));
 
-        Assert.Equal(2, node.GetDepth());
+        Assert.Equal(2, node.GetDepthOfSubtree());
     }
 
     [Fact]
@@ -50,7 +50,7 @@ public class NodeTest //mostly a ui service so we dont need that many tests
         Node node = new Node(null, vertical, horizontal, textBox);
 
         Assert.Empty(node.GetChildren());
-        Assert.Equal(1, node.GetDepth());
+        Assert.Equal(1, node.GetDepthOfSubtree());
 
     }
     [Fact]
@@ -66,5 +66,7 @@ public class NodeTest //mostly a ui service so we dont need that many tests
         Assert.Throws<ArgumentNullException>(() => node.AddControlBelow(null));
         Assert.Throws<ArgumentNullException>(() => node.AddControlBeside(null));
     }
+
+
 
 }

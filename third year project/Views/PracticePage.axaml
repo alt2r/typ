@@ -19,44 +19,38 @@
 				<Button	Width="150" Height="45" HorizontalContentAlignment="Center"
 						Content="Toggle Left" Command="{Binding ToggleLeftClick}" VerticalContentAlignment="Center"/>
 				<TextBlock Text="{Binding LeftIconSource}" />
-				<TextBlock Text="Left Key Binding: A" />
+				<TextBlock Text="{Binding LeftKeyText}" />
 			</StackPanel>
 			<StackPanel HorizontalAlignment="Right" Grid.Column="0" VerticalAlignment="Center" Margin="0,30,30,0">
 				<Button	Width="150" Height="45" Command="{Binding ToggleRightClick}" Content="Toggle Right" HorizontalContentAlignment="Center"
 						VerticalContentAlignment="Center"/>
 				<TextBlock Text="{Binding RightIconSource}" />
-				<TextBlock Text="Right Key Binding: L" />
+				<TextBlock Text="{Binding RightKeyText}" />
 			</StackPanel>
 			<Grid ColumnDefinitions="1*, 1*, 1*, 1*" Grid.Row="1">
 				
-			<Border Width="480" Margin="5" Height="190" Background="Gray"
+			<Border Width="480" Margin="5" Height="190" Background="DarkGray"
 				BorderBrush="Black" BorderThickness="2" Grid.Column="1">
 				<StackPanel>
-					<TextBlock Text="Early" FontSize="16" VerticalAlignment="Top" HorizontalAlignment="Center" Foreground="Red" Name="LeftTopText"/>
-					<TextBlock Text="100ms" VerticalAlignment="Center" HorizontalAlignment="Center" Name="LeftBottomText"/>
-					<Grid x:Name="leftDisplay"
-						  Width="476"
-						  Height="150"
-						Background="{StaticResource LightBlueBrush}"
-					  ClipToBounds="True">
+					<TextBlock Text="{Binding PressTheLeftKeyText}" FontSize="16" VerticalAlignment="Top" HorizontalAlignment="Center" Foreground="Red" Name="LeftTopText"/>
+					<TextBlock Text="" VerticalAlignment="Center" HorizontalAlignment="Center" Name="LeftBottomText"/>
+					<Grid x:Name="leftDisplay"  Width="476" Height="150"
+						Background="{StaticResource LightBlueBrush}" ClipToBounds="True">
 					</Grid>
 				</StackPanel>
 				</Border>			
-			<Border Width="480"	Margin="240,0,0,0" Height="190" Background="Gray"
+			<Border Width="480"	Margin="240,0,0,0" Height="190" Background="DarkGray"
 				BorderBrush="Black" BorderThickness="2" Grid.Column="2">
 				<StackPanel>
-					<TextBlock Text="Good" FontSize="16" VerticalAlignment="Top" HorizontalAlignment="Center" Foreground="Green" Name="RightTopText"/>
-					<TextBlock Text="8ms" VerticalAlignment="Center" HorizontalAlignment="Center" Name="RightBottomText"/>
-					<Grid x:Name="rightDisplay"
-						  Width="476"
-						  Height="150"
-						Background="{StaticResource LightBlueBrush}"
-					  ClipToBounds="True">
+					<TextBlock Text="{Binding PressTheRightKeyText}" FontSize="16" VerticalAlignment="Top" HorizontalAlignment="Center" Foreground="Red" Name="RightTopText"/>
+					<TextBlock Text="" VerticalAlignment="Center" HorizontalAlignment="Center" Name="RightBottomText"/>
+					<Grid x:Name="rightDisplay" Width="476"  Height="150"
+						Background="{StaticResource LightBlueBrush}" ClipToBounds="True">
 					</Grid>
 				</StackPanel>
 			</Border>
 			</Grid>
-
+			
 			<Grid Grid.Row="2">
 				<Button Content="Swap Sides" HorizontalAlignment="Center" VerticalAlignment="Top"
 						Command="{Binding SwitchClick}" Height="45" Width="150" HorizontalContentAlignment="Center"
@@ -78,7 +72,9 @@
 						BorderBrush="{StaticResource WhiteBrush}" BorderThickness="2"
 						Height="50" Width="300" Foreground="{StaticResource BlackBrush}"/>
 			</StackPanel>
-
+			<TextBlock Grid.Row="2" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="12" Margin="10"
+					   Text="Midi Device Detected. Use notes C4 and F4." Foreground="{StaticResource WhiteBrush}"
+					   IsVisible="{Binding MidiTextVisible}" Name="MidiConnectedText"/>
 			<Button
 				HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
 				Content="Back to homepage" Command="{Binding HomeClick}"

@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace third_year_project.Services
 {
-    public class Node //for sandbox tree building
+    public class Node : INode //for sandbox tree building
     {
         Panel horizontalPanel { get; }
         Panel verticalPanel { get; }
@@ -45,7 +45,14 @@ namespace third_year_project.Services
             verticalPanel.Children.Add(horizontalPanel);
             if (parent != this)
             {
-                parent.horizontalPanel.Children.Insert(0, verticalPanel);
+                if (parent.horizontalPanel.Children.Count == 0)
+                {
+                    parent.horizontalPanel.Children.Insert(0, verticalPanel);
+                }
+                else
+                {
+                    parent.horizontalPanel.Children.Insert(parent.horizontalPanel.Children.Count - 1, verticalPanel);
+                }
             }
             control.Text = "1";
 
@@ -83,8 +90,6 @@ namespace third_year_project.Services
 
             if (children.Count > 3)
             {
-                //children.RemoveAt(children.Count - 1);
-
                 //remove the add child button as 4 children is the maximum
                 horizontalPanel.Children.RemoveAt(horizontalPanel.Children.Count - 1);
             }
@@ -156,13 +161,33 @@ namespace third_year_project.Services
             }
         }
 
-        public int GetDepth() //all branches must be the same depth so this is ok
+        public int GetDepthOfSubtree() //all branches must be the same depth so this is ok
         {
             if(children.Count == 0)
             {
                 return 1;
             }
-            return children[0].GetDepth() + 1;
+            return children[0].GetDepthOfSubtree() + 1;
+        }
+
+        public int GetDepthOfThisNode()
+        {
+            if (parent == this)
+            {
+                return 1;
+            }
+            return parent.GetDepthOfThisNode() + 1;
+        }
+
+        // explicit INode implementation so SandboxPageViewModel can depend on an abstraction
+        List<INode> INode.GetChildren()
+        {
+            return children.Cast<INode>().ToList();
+        }
+
+        int INode.GetTotalChildrenCount()
+        {
+            return GetTotalChildrenCount();
         }
     }
 }

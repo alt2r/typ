@@ -3,14 +3,20 @@ using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
 using CSCore.DirectSound;
+using CSCore.DSP;
+using Melanchall.DryWetMidi.Core;
+using Melanchall.DryWetMidi.Multimedia;
 using ReactiveUI;
 using ReactiveUI.Avalonia;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Reactive;
+using System.Reactive.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,10 +27,12 @@ namespace third_year_project.ViewModels
 {
     public class PracticePageViewModel : ViewModelBase
     {
-        SoundPlayer soundPlayer = SoundPlayer.Instance;
-        Key leftKey = Key.A;
-        Key rightKey = Key.L;
-        const double LOOKAHEADSECONDS = 0.1; //basically we want to schedule sounds a bit in advance to avoid latency issues
+        readonly ISoundPlayer soundPlayer;
+        readonly IAppDispatcher dispatcher;
+
+        Key leftKey = SettingsService.Instance.LeftInputKey != Key.None ? SettingsService.Instance.LeftInputKey : Key.A; //default keys if settings havent been set yet
+        Key rightKey = SettingsService.Instance.RightInputKey != Key.None ? SettingsService.Instance.RightInputKey : Key.L;
+        const double LOOKAHEADSECONDS = 0.1;
         long startSample = 0;
         bool leftOn = true, rightOn = true;
 
@@ -32,6 +40,9 @@ namespace third_year_project.ViewModels
         Note rightPatternNote = Note.F4;
         public Note LeftPatternNote => leftPatternNote; //shorthand getter methods, something i discovered way too late into development lol
         public Note RightPatternNote => rightPatternNote;
+
+        InputDevice MidiInputDevice;
+        public event Action<Note> midiAction;
 
 
         int[] leftPattern;
@@ -46,14 +57,58 @@ namespace third_year_project.ViewModels
             set => this.RaiseAndSetIfChanged(ref _bpmSliderValue, value);
         }
 
+        private bool midiTextVisible = false;
+        public bool MidiTextVisible
+        {
+            get => midiTextVisible;
+            set => this.RaiseAndSetIfChanged(ref midiTextVisible, value);
+        }
+
         public ReactiveCommand<Unit, Unit> HomeClick { get; }
         public ReactiveCommand<Unit, Unit> LearnClick { get; }
         public ReactiveCommand<Unit, Unit> SwitchClick { get; }
         public ReactiveCommand<Unit, Unit> ToggleLeftClick { get; }
         public ReactiveCommand<Unit, Unit> ToggleRightClick { get; }
 
-        public PracticePageViewModel(MainWindowViewModel mainWindowVM, List<int[][]> rhythm)
+        private bool _leftMuted;
+        public bool LeftMuted
         {
+            get => _leftMuted;
+            set => this.RaiseAndSetIfChanged(ref _leftMuted, value);
+        }
+
+        public string LeftIconSource =>
+            new string(LeftMuted ? "Pattern not playing" : "Pattern playing");
+
+        private bool _rightMuted;
+        public bool RightMuted
+        {
+            get => _rightMuted;
+            set => this.RaiseAndSetIfChanged(ref _rightMuted, value);
+        }
+
+        public string RightIconSource =>
+            new string(RightMuted ? "Pattern not playing" : "Pattern playing");
+
+        public string LeftKeyText => $"Left Key Binding: {leftKey}";
+
+        public string RightKeyText => $"Right Key Binding: {rightKey}";
+
+        public string PressTheLeftKeyText => $"Press the {leftKey} key!";
+
+        public string PressTheRightKeyText => $"Press the {rightKey} key!";
+
+        //main constructor
+        public PracticePageViewModel(MainWindowViewModel mainWindowVM, List<int[][]> rhythm)
+            : this(mainWindowVM, rhythm, new SoundPlayerAdapter(), new AvaloniaDispatcher(), performAcquire: true)
+        { }
+
+        //manual constructor for testing
+        public PracticePageViewModel(MainWindowViewModel mainWindowVM, List<int[][]> rhythm, ISoundPlayer soundPlayer, IAppDispatcher dispatcher, bool performAcquire = false)
+        {
+            this.soundPlayer = soundPlayer ?? throw new ArgumentNullException(nameof(soundPlayer));
+            this.dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
+
             leftPattern = rhythm[0][rhythm[0].Length - 2];
             rightPattern = rhythm[1][rhythm[1].Length - 2];
 
@@ -64,79 +119,74 @@ namespace third_year_project.ViewModels
 
             LearnClick = ReactiveCommand.Create(() =>
             {
+                StopBeepingCycles();
+                soundPlayer.ClearScheduledNotes(this);
                 soundPlayer.Release(this);
+
                 mainWindowVM.CurrentPage = new LearnPageViewModel(mainWindowVM, rhythm);
             }, outputScheduler: AvaloniaScheduler.Instance);
 
-            SwitchClick = ReactiveCommand.Create(() =>
+            SwitchClick = ReactiveCommand.Create(() => SwapSides(), outputScheduler: AvaloniaScheduler.Instance);
+            ToggleLeftClick = ReactiveCommand.Create(() => ToggleLeft(), outputScheduler: AvaloniaScheduler.Instance);
+            ToggleRightClick = ReactiveCommand.Create(() => ToggleRight(), outputScheduler: AvaloniaScheduler.Instance);
+
+            if (performAcquire)
             {
-                SwapSides();
-            }, outputScheduler: AvaloniaScheduler.Instance);
-
-            ToggleLeftClick = ReactiveCommand.Create(() =>
-            {
-                ToggleLeft();
-            }, outputScheduler: AvaloniaScheduler.Instance);
-
-            ToggleRightClick = ReactiveCommand.Create(() =>
-            {
-                ToggleRight();
-            }, outputScheduler: AvaloniaScheduler.Instance);
-
-
-
-            while (!soundPlayer.TryAcquire(this))
-            { Task.Delay(500); }
-            soundPlayer.Initialize(this);
+                while (!this.soundPlayer.TryAcquire(this))
+                {
+                    Thread.Sleep(200);
+                }
+                this.soundPlayer.Initialize(this);
+            }
 
             this.WhenAnyValue(x => x.BpmSliderValue)
-            .Subscribe(val =>
-            {
-                // This runs whenever the slider moves
-                StopBeepingCycles();
-                StartBeepingCycles();
-
-            });
+                .Skip(1)
+                .Subscribe(_ =>
+                {
+                    StopBeepingCycles();
+                    StartBeepingCycles();
+                });
 
             this.WhenAnyValue(x => x.LeftMuted)
-                .Subscribe(_ => { 
-                    this.RaisePropertyChanged(nameof(LeftIconSource));
-                });
+                .Subscribe(_ => this.RaisePropertyChanged(nameof(LeftIconSource)));
 
             this.WhenAnyValue(x => x.RightMuted)
-                .Subscribe(_ => {
-                    this.RaisePropertyChanged(nameof(RightIconSource));
-                });
+                .Subscribe(_ => this.RaisePropertyChanged(nameof(RightIconSource)));
+
+            if (performAcquire)
+            {
+                StartBeepingCycles();
+            }
+
+            //midi stuff
+            ICollection<InputDevice> devices = InputDevice.GetAll();
+
+            //on my setup this is taken as true whenever the audio interface is plugged in, even if it has no midi devices attached... might just have to roll with it 
+            if (devices.Count > 0)
+            {
+                //so obviously if we had more time there would be a pick midi device menu, but for now we just take the first one
+                //there are very few setups that allow for multiple midi device inputs anyway so this will be fine for now
+                MidiInputDevice = InputDevice.GetByIndex(0);
+                MidiInputDevice.EventReceived += new EventHandler<MidiEventReceivedEventArgs>(MidiEventReceived);
+                MidiInputDevice.StartEventsListening();
+                MidiTextVisible = true;
+            }
+            else
+            {
+                MidiTextVisible = false; //in case practice closes and reopens without midi plugged in
+                //if we had more time id make this text appear when a device was plugged in but for now we assume all midi will be plugged in on page load
+            }
+
         }
 
-
-        private bool _leftMuted;
-        public bool LeftMuted
+        public SoundPlayer GetSoundPlayer()
         {
-            get => _leftMuted;
-            set => this.RaiseAndSetIfChanged(ref _leftMuted, value);
+            return SoundPlayer.Instance;
         }
 
-        public string LeftIconSource => //yes this was meant to be a speaker icon. yes i spent 2 hours trying to get it to work
-            new string(LeftMuted        //yes i gave up, deadlines too soon and there are core features that are currently broken
-                ? "Pattern not playing" 
-                : "Pattern playing");
-
-        private bool _rightMuted;
-        public bool RightMuted
-        {
-            get => _rightMuted;
-            set => this.RaiseAndSetIfChanged(ref _rightMuted, value);
-        }
-
-        public string RightIconSource =>
-            new string(RightMuted
-                ? "Pattern not playing"
-                : "Pattern playing");
         public void SwapSides()
         {
-            //Console.WriteLine("in swapsides");
-            StopBeepingCycles() ;
+            StopBeepingCycles();
             var temp = leftPattern;
             leftPattern = rightPattern;
             rightPattern = temp;
@@ -145,7 +195,6 @@ namespace third_year_project.ViewModels
 
         public void ToggleLeft()
         {
-            //Console.WriteLine("in toggleleft");
             if (leftOn)
             {
                 StopLeftCycle();
@@ -190,39 +239,26 @@ namespace third_year_project.ViewModels
             this.RaisePropertyChanged(nameof(RightIconSource));
         }
 
-        public SoundPlayer GetSoundPlayer() //view needs sound player reference lol
-        {
-            return soundPlayer;
-        }
-
-
         public void StartBeepingCycles()
         {
             soundPlayer.TryAcquire(this);
             soundPlayer.Initialize(this);
-            //so we are assuming that 1 is a 16th note at the bpm specified by bpm. meaning 4 is a a quarter. bpm is in minutes so 60000ms / bpm = ms per quarter note
-            //this means we want to have beatMS = 60000 / bpm / 4 for a 16th note and then loop through each possible 16th note and add a note if its in the pattern
-            //brain please start working again
 
-            // bpm value doubled again here, maybe i am confusing 16th notes with 8th notes
-
-            
             startSample = soundPlayer.GetCurrentSample() + soundPlayer.MsToSample(LOOKAHEADSECONDS * 1000);
 
             StartLeftCycle();
             StartRightCycle();
-
         }
 
         public void StartLeftCycle()
         {
+            if (leftTimer != null) return;
 
             double beatMs = (60000.0 / _bpmSliderValue) / 2;
-            int leftSixteenthNoteCounter = 0; //counts sixteenth notes in between the beats
-            int leftPatternIndex = 0; //what note of the looping pattern we are currently on
+            int leftSixteenthNoteCounter = 0;
+            int leftPatternIndex = 0;
             int leftBeatNumber = 0;
-            TimeSpan interval = TimeSpan.FromMilliseconds(beatMs * 0.9); //may need a -100 here as a buffer?
-                                                                         //yes the longer it runs the further ahead of real time the schedule queue will get but i dont think its that much of a bad thing atp
+            TimeSpan interval = TimeSpan.FromMilliseconds(beatMs * 0.9);
 
             leftTimer = new DispatcherTimer(interval, DispatcherPriority.Normal, (s, e) =>
             {
@@ -230,17 +266,12 @@ namespace third_year_project.ViewModels
                 {
                     leftSixteenthNoteCounter = 0;
                     leftPatternIndex++;
-                    if (leftPatternIndex == leftPattern.Count())
-                    {
-                        leftPatternIndex = 0;
-                    }
-
+                    if (leftPatternIndex == leftPattern.Count()) leftPatternIndex = 0;
                 }
                 if (leftSixteenthNoteCounter == 0)
                 {
                     long beatSample = startSample + soundPlayer.MsToSample(leftBeatNumber * beatMs);
                     soundPlayer.ScheduleNote(this, beatSample, leftPatternNote);
-                    //Console.WriteLine($"scheduling at {beatSample} and the current sample is {soundPlayer.getCurrentSample()}");
                 }
                 leftSixteenthNoteCounter++;
                 leftBeatNumber++;
@@ -249,11 +280,12 @@ namespace third_year_project.ViewModels
 
         public void StartRightCycle()
         {
+            if (rightTimer != null) return;
 
             double beatMs = (60000.0 / _bpmSliderValue) / 2;
             TimeSpan interval = TimeSpan.FromMilliseconds(beatMs * 0.9);
-            int rightSixteenthNoteCounter = 0; //counts sixteenth notes in between the beats
-            int rightPatternIndex = 0; //what note of the looping pattern we are currently on
+            int rightSixteenthNoteCounter = 0;
+            int rightPatternIndex = 0;
             int rightBeatNumber = 0;
 
             rightTimer = new DispatcherTimer(interval, DispatcherPriority.Normal, (s, e) =>
@@ -262,16 +294,11 @@ namespace third_year_project.ViewModels
                 {
                     rightSixteenthNoteCounter = 0;
                     rightPatternIndex++;
-                    if (rightPatternIndex == rightPattern.Count())
-                    {
-                        rightPatternIndex = 0;
-                    }
-
+                    if (rightPatternIndex == rightPattern.Count()) rightPatternIndex = 0;
                 }
                 if (rightSixteenthNoteCounter == 0)
                 {
-                    long beatSample = startSample + soundPlayer.MsToSample(rightBeatNumber * beatMs); //-100 because keyboard input delay? idk this might be wrong still
-
+                    long beatSample = startSample + soundPlayer.MsToSample(rightBeatNumber * beatMs);
                     soundPlayer.ScheduleNote(this, beatSample, rightPatternNote);
                 }
                 rightSixteenthNoteCounter++;
@@ -279,12 +306,9 @@ namespace third_year_project.ViewModels
             });
         }
 
-
         public void StopBeepingCycles()
         {
-            //Console.WriteLine("stopping in practice");
             soundPlayer.Stop(this);
-
             StopLeftCycle();
             StopRightCycle();
         }
@@ -310,18 +334,20 @@ namespace third_year_project.ViewModels
         public void OnViewClosed()
         {
             StopBeepingCycles();
+            soundPlayer.ClearScheduledNotes(this);
             soundPlayer.Release(this);
+
+            //release midi
+            if (MidiInputDevice != null)
+            {
+                MidiInputDevice.EventReceived -= new EventHandler<MidiEventReceivedEventArgs>(MidiEventReceived);
+                MidiInputDevice.Dispose();
+                MidiInputDevice = null;
+            }
         }
 
-        public Key GetLeftKey()
-        {
-            return leftKey;
-        }
-
-        public Key GetRightKey()
-        {
-            return rightKey;
-        }
+        public Key GetLeftKey() => leftKey;
+        public Key GetRightKey() => rightKey;
 
         public double OnKeyDown(Key key)
         {
@@ -336,16 +362,15 @@ namespace third_year_project.ViewModels
                 long beatSamples = soundPlayer.MsToSample(beatMs);
                 int totalBeats = leftPattern.Sum();
 
-                long samplePositionInBar = currentSample % (beatSamples * totalBeats);
+                long samplePositionInBar = (totalBeats == 0) ? 0 : currentSample % (beatSamples * totalBeats); //how many samples through the bar are we 
                 long timeDiff = long.MaxValue;
 
-                int counter = 0;
-                int patternIndex = 0;
                 long[] beatPlacements = new long[leftPattern.Length];
                 for (int i = 0; i < leftPattern.Length; i++)
                 {
                     beatPlacements[i] = leftPattern[0..i].Sum() * beatSamples;
                 }
+                beatPlacements = beatPlacements.Concat(new long[] { totalBeats * beatSamples }).ToArray(); //add the start of the next bar as a possible placement to compare against so that you can be early on the first beat and it counts as in time
                 for (int i = 0; i < beatPlacements.Length; i++)
                 {
                     if (Math.Abs(timeDiff) > Math.Abs(beatPlacements[i] - samplePositionInBar))
@@ -355,51 +380,61 @@ namespace third_year_project.ViewModels
                 }
 
                 double msLate = soundPlayer.SampleToMs(timeDiff);
-                //msLate -= 100; //correcting for delays
                 return Math.Round(msLate);
             }
-
             else if (key == rightKey)
             {
-                if(!rightOn)
-                    soundPlayer.PlayLiveNote(rightPatternNote);
+                if (!rightOn) soundPlayer.PlayLiveNote(rightPatternNote);
 
                 long currentSample = soundPlayer.GetCurrentSample();
                 currentSample -= startSample;
-                double beatMs = (60000.0 / _bpmSliderValue) / 2; 
+                double beatMs = (60000.0 / _bpmSliderValue) / 2;
                 long beatSamples = soundPlayer.MsToSample(beatMs);
                 int totalBeats = rightPattern.Sum();
 
-                long samplePositionInBar = currentSample % (beatSamples * totalBeats);
+                long samplePositionInBar = (totalBeats == 0) ? 0 : currentSample % (beatSamples * totalBeats);
                 long timeDiff = long.MaxValue;
 
-                int counter = 0;
-                int patternIndex = 0;
                 long[] beatPlacements = new long[rightPattern.Length];
                 for (int i = 0; i < rightPattern.Length; i++)
                 {
                     beatPlacements[i] = rightPattern[0..i].Sum() * beatSamples;
                 }
+                beatPlacements = beatPlacements.Concat(new long[] { totalBeats * beatSamples }).ToArray();
                 for (int i = 0; i < beatPlacements.Length; i++)
                 {
                     if (Math.Abs(timeDiff) > Math.Abs(beatPlacements[i] - samplePositionInBar))
-                    {
                         timeDiff = beatPlacements[i] - samplePositionInBar;
-                    }
                 }
 
                 double msLate = soundPlayer.SampleToMs(timeDiff);
-                //msLate -= 100; //correcting for delays
                 return Math.Round(msLate);
             }
             return 0;
         }
-        public void OnKeyUp(Key key)
-        {
 
+        private void MidiEventReceived(object sender, MidiEventReceivedEventArgs e)
+        {
+            MidiEvent midiEvent = e.Event;
+            if (midiEvent is NoteOnEvent noteOn)
+            {
+                Note notePlayed = (Note)(int)noteOn.NoteNumber;
+                if (notePlayed == leftPatternNote)
+                {
+                    if(!leftOn)
+                        soundPlayer.PlayLiveNote(notePlayed);
+                    midiAction?.Invoke(notePlayed);
+                }
+                else if(notePlayed == rightPatternNote)
+                {
+                    if (!rightOn)
+                        soundPlayer.PlayLiveNote(notePlayed);
+                    midiAction?.Invoke(notePlayed);
+                }
+
+            }
         }
 
-
-
+        public void OnKeyUp(Key key) { }
     }
 }

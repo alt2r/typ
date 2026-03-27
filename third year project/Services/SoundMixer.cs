@@ -24,9 +24,6 @@ namespace third_year_project.Services
         private readonly DateTime startTime = DateTime.UtcNow;
         public DateTime StartTime => startTime;
 
-        //ConcurrentQueue<double> _noteNotifications = new();
-        //public ConcurrentQueue<double> NoteNotifications => _noteNotifications;
-
         public event Action<double> soundPlayed;
 
         public SoundMixer(int _sampleRate = 44100)
@@ -61,20 +58,21 @@ namespace third_year_project.Services
             Schedule(SamplePosition + samples, action);
         }
 
-        public void ScheduleSine(long sampleTime, double frequency, float amplitude, double durationMs)
+        public void ClearScheduledNotes()
+        {
+            while (_events.TryDequeue(out _)) { }
+        }
+
+        public void ScheduleSine(long sampleTime, double frequency, double amplitude, double durationMs)
         {
             Schedule(sampleTime, () =>
             {
                 long durationSamples = MsToSamples(durationMs);
-                //lock (voiceLock) //old locking system - not needed anymore?
-                //{
                 voices.Add(new SineVoice(
                     frequency,
                     amplitude,
                     sampleRate,
                     durationSamples));
-                //}
-                //_noteNotifications.Enqueue(frequency);
                 soundPlayed?.Invoke(frequency);
             });
         }
@@ -93,12 +91,9 @@ namespace third_year_project.Services
                 {
                     _events.TryDequeue(out ev);
                     ev.Trigger();
-                    Console.WriteLine($"triggering on {currentSample}");
-
-                    //OnAudioEventTriggered?.Invoke(currentSample);
                 }
 
-                float mixed = 0f;
+                double mixed = 0f;
                 int active = 0;
 
                 lock (voiceLock)

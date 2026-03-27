@@ -117,7 +117,10 @@ namespace third_year_project.ViewModels
 
             PracticeClick = ReactiveCommand.Create(() =>
             {
-                this.soundPlayer.Release(this);
+                StopBeepingCycles();
+                soundPlayer.ClearScheduledNotes(this);
+                soundPlayer.Release(this);
+
                 mainWindowVM.CurrentPage = new PracticePageViewModel(mainWindowVM, rhythm);
             }, outputScheduler: AvaloniaScheduler.Instance);
 
@@ -161,7 +164,10 @@ namespace third_year_project.ViewModels
                     {
                         Border clockBorder = (Border)CurrentDiagram;
                         if (clockBorder.Child is ClockDiagram cd)
+                        {
                             cd.SetBpm(val);
+                            cd.StopSpinningCycle();
+                        }
                     }
                     lookAheadMs = val * 2;
                     running = false;
@@ -312,6 +318,7 @@ namespace third_year_project.ViewModels
             }
 
             StopBeepingCycles();
+            soundPlayer.ClearScheduledNotes(this);
             soundPlayer.Release(this);
         }
     }

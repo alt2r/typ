@@ -8,10 +8,6 @@ namespace third_year_project.Views
         public MainWindow()
         {
             InitializeComponent();
-            //DataContext = new MainWindowViewModel();  //this is a repeated initialization do we need this???
-
-            // Load a default page
-            //PageHost.Content = new HomePage();
         }
     }
 }

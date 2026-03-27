@@ -15,7 +15,25 @@
 					   Foreground="{StaticResource BlackBrush}"/>
 		</Border>
 		<StackPanel Grid.Row="1" HorizontalAlignment="Center">
-			<TextBlock Text="resource ...." Foreground="White"/>
+
+			<TextBlock Text="App created by Harry Hallifax as a part of a Bachelors Dissertation at the University of Manchester" Foreground="White" HorizontalAlignment="Center"/>
+			<TextBlock Text="" Foreground="White" HorizontalAlignment="Center"/>
+			<TextBlock Text="Resources:" Foreground="White" HorizontalAlignment="Center"/>
+
+			<TextBlock Text="What is a polyrhythm? https://en.wikipedia.org/wiki/Polyrhythm" Foreground="White" HorizontalAlignment="Center"/>
+			<TextBlock Text="Polyrhythm builder tool: https://4four.io/ploop" Foreground="White" HorizontalAlignment="Center"/>
+			<TextBlock Text="Clock diagram but more colourful: https://www.instagram.com/p/DOJRg75jrGi/" Foreground="White" HorizontalAlignment="Center"/>
+			<TextBlock Text="Experimental music use of polyrhythms: https://www.youtube.com/watch?v=SthcxWPXG_E" Foreground="White" HorizontalAlignment="Center"/>
+			<TextBlock Text="Formal discussion on polyrhythm visualisation: https://digitalcollections.lipscomb.edu/jmtp/vol19/iss1/3/" Foreground="White" HorizontalAlignment="Center"/>
+			<TextBlock Text="Tree branch diagram in action: https://www.youtube.com/shorts/AgtlN0MURx0" Foreground="White" HorizontalAlignment="Center"/>
+			<TextBlock Text="" Foreground="White" HorizontalAlignment="Center"/>
+			<TextBlock Text="Music that inspired this project:" Foreground="White" HorizontalAlignment="Center"/>
+			<TextBlock Text="Meshuggah - ObZen" Foreground="White" HorizontalAlignment="Center"/>
+			<TextBlock Text="Periphery - Periphery IV: Hail Stan" Foreground="White" HorizontalAlignment="Center"/>
+			<TextBlock Text="Animals As Leaders - Monomyth" Foreground="White" HorizontalAlignment="Center"/>
+			<TextBlock Text="Avenged Sevenfold - Avenged Sevenfold" Foreground="White" HorizontalAlignment="Center"/>
+			<TextBlock Text="Evergrey - The Atlantic" Foreground="White" HorizontalAlignment="Center"/>
+			
 		</StackPanel>
 
 		<Button

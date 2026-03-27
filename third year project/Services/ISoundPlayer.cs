@@ -16,5 +16,6 @@ namespace third_year_project.Services
 
         void PlayLiveNote(Note note);
         double SampleToMs(long samples);
+        void ClearScheduledNotes(object requester);
     }
 }

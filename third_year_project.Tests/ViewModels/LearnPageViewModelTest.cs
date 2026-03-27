@@ -15,7 +15,7 @@ using third_year_project.ViewModels;
 
 namespace third_year_project.Tests.ViewModels
 {
-    public class LearnPageViewModelTests
+    public class LearnPageViewModelTest
     {
         private static List<int[][]> MakeSimpleRhythm()
         {
@@ -130,18 +130,25 @@ namespace third_year_project.Tests.ViewModels
         }
 
         [Fact]
-        public void SetRhythmToDisplay_AttachesClockDiagram()
+        public void SetRhythmToDisplay_AttachesClockAndTreeDiagram()
         {
             var rhythm = MakeSimpleRhythm();
             var vm = CreateVmWithInjectedFields();
 
             vm.setRhythmToDisplay(rhythm);
-            
+
             var clockField = typeof(LearnPageViewModel).GetField("clock", BindingFlags.NonPublic | BindingFlags.Instance);
             var clockBorder = (Border)clockField.GetValue(vm);
 
+            var treeField = typeof(LearnPageViewModel).GetField("tree", BindingFlags.NonPublic | BindingFlags.Instance);
+            var treeBorder = (Border)treeField.GetValue(vm);
+            var treeGrid = (Grid)treeBorder.Child;
+
             Assert.NotNull(clockBorder.Child);
             Assert.IsType<ClockDiagram>(clockBorder.Child);
+
+            Assert.NotNull(treeGrid.Children[0]);
+            Assert.IsType<TreeDiagram>(treeGrid.Children[0]);
         }
 
         [Fact]
@@ -282,6 +289,32 @@ namespace third_year_project.Tests.ViewModels
             mockDispatcher.Verify(d => d.Post(It.IsAny<Action>()), Times.Never);
         }
 
+        [Fact]
+        public void BeepingStartsOnLoad()
+        {
+            var mainVm = new MainWindowViewModel();
+            var rhythm = MakeSimpleRhythm();
 
+            var mockSound = new Mock<ISoundPlayer>();
+            var mockDispatcher = new Mock<IAppDispatcher>();
+            mockSound.Setup(s => s.TryAcquire(It.IsAny<object>())).Returns(true);
+            mockSound.Setup(s => s.Initialize(It.IsAny<object>()));
+            mockSound.Setup(s => s.MsToSample(It.IsAny<double>())).Returns<double>(ms => (long)(ms * 44.1));
+            mockSound.Setup(s => s.GetCurrentSample()).Returns(0L);
+            mockSound.Setup(s => s.ScheduleNote(It.IsAny<object>(), It.IsAny<long>(), It.IsAny<Note>()));
+
+            var learnVm = new LearnPageViewModel(mainVm, rhythm, mockSound.Object, mockDispatcher.Object, performAcquire: true);
+
+            var learnLeftField = typeof(LearnPageViewModel).GetField("leftTimer", BindingFlags.NonPublic | BindingFlags.Instance);
+            var learnRightField = typeof(LearnPageViewModel).GetField("rightTimer", BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.NotNull(learnLeftField);
+            Assert.NotNull(learnRightField);
+
+            var learnLeftTimer = learnLeftField.GetValue(learnVm);
+            var learnRightTimer = learnRightField.GetValue(learnVm);
+            Assert.NotNull(learnLeftTimer);
+            Assert.NotNull(learnRightTimer);
+
+        }
     }
 }

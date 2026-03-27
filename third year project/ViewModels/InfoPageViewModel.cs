@@ -17,7 +17,6 @@ namespace third_year_project.ViewModels
         {
             HomeClick = ReactiveCommand.Create(() =>
             {
-                //Console.WriteLine("Returning to home page");
                 mainWindowVM.CurrentPage = new HomePageViewModel(mainWindowVM);
             }, outputScheduler: AvaloniaScheduler.Instance);
         }

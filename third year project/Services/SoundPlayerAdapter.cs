@@ -22,6 +22,7 @@ namespace third_year_project.Services
 
         public void PlayLiveNote(Note note) => _inner.PlayLiveNote(note);
         public double SampleToMs(long samples) => _inner.SampleToMs(samples);
+        public void ClearScheduledNotes(object requester) => _inner.ClearScheduledNotes(requester);
     }
 
     public sealed class AvaloniaDispatcher : IAppDispatcher

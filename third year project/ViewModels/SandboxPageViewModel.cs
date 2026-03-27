@@ -14,62 +14,77 @@ using System.Text;
 using System.Threading.Tasks;
 using third_year_project.Services;
 using third_year_project.Views;
+using System.Reactive.Concurrency;
 
 namespace third_year_project.ViewModels
 {
-    internal class SandboxPageViewModel : ViewModelBase
+    public class SandboxPageViewModel : ViewModelBase
     {
         public ReactiveCommand<Unit, Unit> HomeClick { get; }
 
         public ReactiveCommand<Unit, Unit> ConfirmClick { get; }
 
 
-        public ReactiveCommand<Node, Unit> NewRow { get; }
-        public ReactiveCommand<Node, Unit> NewNode { get; }
+        public ReactiveCommand<INode, Unit> NewRow { get; }
+        public ReactiveCommand<INode, Unit> NewNode { get; }
 
         private int leftRows, rightRows = 1;
 
-        public Interaction<Node, Unit> AddNodeInView { get; }
-        public Interaction<Node, Unit> AddRowInView { get; }
+        public Interaction<INode, Unit> AddNodeInView { get; }
+        public Interaction<INode, Unit> AddRowInView { get; }
 
-        public Node leftRootNode { get; set; }
-        public Node rightRootNode { get; set; }
+        public INode? leftRootNode { get; set; }
+        public INode? rightRootNode { get; set; }
 
         public MainWindowViewModel mwvm;
 
-        public SandboxPageViewModel(MainWindowViewModel mainWindowVM)
+        private readonly Action<List<int[][]>>? onConfirm;
+
+        private bool isNotValidDiagram = false;
+        public bool IsNotValidDiagram
         {
+            get => isNotValidDiagram;
+            set => this.RaiseAndSetIfChanged(ref isNotValidDiagram, value);
+        }
+
+        public SandboxPageViewModel(MainWindowViewModel mainWindowVM, Action<List<int[][]>>? onConfirm = null, IScheduler? outputScheduler = null)
+        {
+            var scheduler = outputScheduler ?? AvaloniaScheduler.Instance;
+
             HomeClick = ReactiveCommand.Create(() =>
             {
-                //Console.WriteLine("Returning to home page");
                 mainWindowVM.CurrentPage = new HomePageViewModel(mainWindowVM);
-            }, outputScheduler: AvaloniaScheduler.Instance);
+            }, outputScheduler: scheduler);
+
+            this.onConfirm = onConfirm;
 
             ConfirmClick = ReactiveCommand.Create(() =>
             {
                 ConfirmDiagram();
-            }, outputScheduler: AvaloniaScheduler.Instance);
+            }, outputScheduler: scheduler);
 
-            AddNodeInView = new Interaction<Node, Unit>();
-            AddRowInView = new Interaction<Node, Unit>();
+            AddNodeInView = new Interaction<INode, Unit>();
+            AddRowInView = new Interaction<INode, Unit>();
 
-            NewRow = ReactiveCommand.Create<Node>(async args =>
+            NewRow = ReactiveCommand.Create<INode>(async args =>
             {
                 await AddRowInView.Handle(args);
-            }, outputScheduler: AvaloniaScheduler.Instance);
+            }, outputScheduler: scheduler);
 
-            NewNode = ReactiveCommand.Create<Node>(async args =>
+            NewNode = ReactiveCommand.Create<INode>(async args =>
             {
-                await AddNodeInView.Handle( args);
-            }, outputScheduler: AvaloniaScheduler.Instance);
+                await AddNodeInView.Handle(args);
+            }, outputScheduler: scheduler);
 
             mwvm = mainWindowVM;
         }
 
         private void ConfirmDiagram()
         {
-            //validate the input TODO
-            Console.WriteLine($"from vm children count is {leftRootNode.GetTotalChildrenCount()}");
+            if (leftRootNode == null || rightRootNode == null)
+            {
+                return;
+            }
             List<List<int>> leftStructure = new List<List<int>>();
             leftStructure.Add(new List<int>());
             leftStructure[0].Add(leftRootNode.GetTotalChildrenCount());
@@ -80,7 +95,10 @@ namespace third_year_project.ViewModels
             rightStructure[0].Add(rightRootNode.GetTotalChildrenCount());
             rightStructure = GetChildrenRecursive(rightRootNode, rightStructure, 1);
 
-            int rowCount = 0;
+            //trim the trailing empty rows added by the recursive builder
+            TrimEmptyRows(leftStructure);
+            TrimEmptyRows(rightStructure);
+
             bool validDiagram = true;
             foreach (List<int> row in leftStructure) //check they all add up to the same value
             {
@@ -88,30 +106,21 @@ namespace third_year_project.ViewModels
                 {
                     validDiagram = false;
                 }
-                if(row.Count <= rowCount * 2 && row.Count != 0)
-                {
-                    validDiagram = false;
-                    rowCount = row.Count;
-                }
+                // keep existing heuristic; consider revisiting this logic in future
             }
-            rowCount = 0;
+
             foreach (List<int> row in rightStructure) //check they all add up to the same value
             {
                 if (row.Sum() != rightRootNode.GetTotalChildrenCount() && row.Sum() != 0)
                 {
                     validDiagram = false;
                 }
-                if (row.Count <= rowCount * 2 && row.Count != 0)
-                {
-                    validDiagram = false;
-                    rowCount = row.Count;
-                }
             }
             if(leftStructure.Count != rightStructure.Count)
             {
                 validDiagram = false;
             }
-            if(leftStructure.Count < 3)
+            if(leftStructure.Count < 2)
             {
                 validDiagram = false;
             }
@@ -119,31 +128,48 @@ namespace third_year_project.ViewModels
             if(validDiagram)
             {
                 List<int[][]> structure = new List<int[][]>();
-                List<int[]> left = [];
+                List<int[]> left = new List<int[]>();
                 foreach(List<int> row in leftStructure)
                 {
                     if(row.Count > 0)
-                    left.Add(row.ToArray());
+                        left.Add(row.ToArray());
                 }
                 structure.Add(left.ToArray());
 
-                List<int[]> right = [];
+                List<int[]> right = new List<int[]>();
                 foreach (List<int> row in rightStructure)
                 {
                     if(row.Count > 0)
-                    right.Add(row.ToArray());
+                        right.Add(row.ToArray());
                 }
                 structure.Add(right.ToArray());
-                mwvm.CurrentPage = new LearnPageViewModel(mwvm, structure);
+
+                if (onConfirm != null)
+                {
+                    onConfirm(structure);
+                }
+                else
+                {
+                    mwvm.CurrentPage = new LearnPageViewModel(mwvm, structure);
+                }
             }
             else
             {
-                Console.WriteLine("invalid trees");
+                IsNotValidDiagram = true;
             }
         }
-        private List<List<int>> GetChildrenRecursive(Node node, List<List<int>> struc, int depth)
+
+        private void TrimEmptyRows(List<List<int>> struc)
         {
-            List<int> rowList = [];
+            //remove trailing empty rows that were introduced by recursion but contain no data
+            while (struc.Count > 0 && struc.Last().Count == 0)
+            {
+                struc.RemoveAt(struc.Count - 1);
+            }
+        }
+
+        private List<List<int>> GetChildrenRecursive(INode node, List<List<int>> struc, int depth)
+        {
             while (struc.Count <= depth)
             {
                 struc.Add(new List<int>());
@@ -153,15 +179,11 @@ namespace third_year_project.ViewModels
                 if (child.GetTotalChildrenCount() > 0)
                 {
                     struc[depth].Add(child.GetTotalChildrenCount());
-                }   
+                }
                 struc = GetChildrenRecursive(child, struc, depth + 1);
-               
             }
             return struc;
-           
         }
 
     }
-
-
 }

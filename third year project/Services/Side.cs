@@ -9,7 +9,7 @@ namespace third_year_project.Services
     public enum Side
     {
         Left = 0,
-        Right
+        Right = 1
     }
 }
 

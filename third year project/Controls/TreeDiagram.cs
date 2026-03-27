@@ -29,7 +29,6 @@ namespace third_year_project.Controls
         private bool treeDrawn = false, resetFlashCycle = true;
         private int flashCycleStep;
         static Point offset = new Point(0, 0);
-        //private int activeTrees = 0;
         int[][] structure;
         string noteToPlay;
         double bufferZone = 1; //having this as anything but 1 seems to offset everything
@@ -39,8 +38,6 @@ namespace third_year_project.Controls
         private IBrush? controlBackgroundBrush;
 
         int bpm = 120;
-
-        //SoundPlayer soundPlayer = SoundPlayer.instance;
 
         public static readonly StyledProperty<string> TreeStructureProperty =
            AvaloniaProperty.Register<TreeDiagram, string>(nameof(TreeStructure));
@@ -64,7 +61,6 @@ namespace third_year_project.Controls
         {
             structure = _structure;
             noteToPlay = note;
-            //soundPlayer.Initialize();
 
             SizeChanged += (_, _) =>
             {
@@ -85,7 +81,6 @@ namespace third_year_project.Controls
         }
         public TreeDiagram()
         {
-            //structure = IntArrayParser.ParseTo2DIntArray(TreeStructure);
 
             SizeChanged += (_, _) =>
             {
@@ -107,14 +102,7 @@ namespace third_year_project.Controls
 
         public void OnControlSwitched()
         {
-            //flashCycleStep = 1;
-            //tree = null;
-            //treeDrawn = false;
             resetFlashCycle = true;
-            //StopFlashingCycle();
-            //InvalidateVisual();
-
-            //soundPlayer.scheduleNote(soundPlayer.getCurrentSample(), noteToPlay);// was having issues with the thing not playing
         }
 
         //these wonderful functions place the control in the center of the available space instead of giving it a width and height of 0
@@ -150,11 +138,10 @@ namespace third_year_project.Controls
             if (offset == new Point(0, 0)) //this is a little hack to get the red lines to draw in the right place there was some issue with the black lines having local positions and the red ones being based on the global position (which i have no idea why that would be the case) but this seems to fix it
             {
                 offset = (Point)this.TranslatePoint(new Point(0, 0), this.GetVisualRoot() as Visual);
-                //offset = new Point(offset.X, 0); //vertical stuff is going weird this might fix it 
             }
 
 
-            double width = this.Bounds.Width * bufferZone; //maybe this 0.9 should be a slider for people with weird size screens
+            double width = this.Bounds.Width * bufferZone; //maybe this should be a slider for people with weird size screens
             double height = this.Bounds.Height * bufferZone;
 
             if (!treeDrawn)
@@ -167,46 +154,18 @@ namespace third_year_project.Controls
             this.tree.draw(width, height, context, this, !treeDrawn, flashCycleStep);
             flashCycleStep = -1; //-1 will mean dont change it from what it was before
 
-            //if (!treeDrawn)
-            //{
-            //    StartFlashingCycle(bpm);
-            //}
-
-            //if(resetFlashCycle)
-            //{
-            //    setBranchColour(tree.GetBottomRowNodes()[0], new Pen(highlightBrush, 3));
-            //    tree.setCurrentFlashStep(1);
-            //    resetFlashCycle = false;
-            //}
-
             treeDrawn = true;
-
-            //this.AttachedToVisualTree += OnAttachedToVisualTree;
-            //this.DetachedFromVisualTree += OnDetachedFromVisualTree;
-
         }
 
         public void ResetFlashCycle()
         {
             StartFlashingCycle(bpm);
-
-            //setBranchColour(tree.GetBottomRowNodes()[0], new Pen(highlightBrush, 3));
             tree.setCurrentFlashStep(1);
             resetFlashCycle = false;
         }
         private DiagramNode BuildTreeRecursive(DiagramNode partTree, ref bool[][] nodesRead, ref int[][] definition)
         {
             int layerTotal = 0;
-            //Console.WriteLine($"part tree root: { partTree.getValue()}");
-            //foreach (int[] a in definition)
-            //{
-            //    foreach(int b in a)
-            //    {
-            //        Console.Write(b + " ");
-            //    }
-            //    Console.Write("|");
-            //}
-            //Console.WriteLine();
 
             if (definition.Length < 2)
             {
@@ -244,8 +203,6 @@ namespace third_year_project.Controls
 
         private DiagramNode buildTree()
         {
-            //int[][] definition = [ [14], [8, 6], [3, 5, 3, 3], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1] ];
-
             bool[][] nodesRead = new bool[structure.Length][];
 
             for (int i = 0; i < structure.Length; i++)
@@ -268,25 +225,6 @@ namespace third_year_project.Controls
             base.OnDetachedFromVisualTree(e);
             StopFlashingCycle();
         }
-        //protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
-        //{
-        //    //when we resize the window we want to redraw
-        //    base.OnPropertyChanged(change);
-        //    if (tree == null)
-        //    {
-        //        return;
-        //    }
-        //    if (change.Property == BoundsProperty)
-        //    {
-        //        offset = new Point(0, 0);
-        //        treeDrawn = false;
-        //        //flashCycleStep = tree.getCurrentFlashStep();
-        //        //Console.WriteLine($"flash cycle step set to {tree.getCurrentFlashStep()}");
-        //        StopFlashingCycle();
-        //        tree = null;
-        //        InvalidateVisual();
-        //    }
-        //}
 
         private DispatcherTimer? flashTimer;
 
@@ -304,7 +242,6 @@ namespace third_year_project.Controls
 
             flashTimer = new DispatcherTimer(interval, DispatcherPriority.Normal, (s, e) =>
             {
-                //bottomRowNodes[tree.getCurrentFlashStep()].setColour(context, new Pen(Brushes.Red, 3));
                 int step = tree.getCurrentFlashStep();
                 setBranchColour(bottomRowNodes[step], new Pen(Brushes.Red, 3));
                 this.InvalidateVisual();
@@ -314,10 +251,6 @@ namespace third_year_project.Controls
                 {
                     step -= countsToPlaySound[count];
                     count++;
-                }
-                if(step == 0)
-                {
-                    //soundPlayer.scheduleNote(soundPlayer.getCurrentSample(), noteToPlay);
                 }
             });
         }
@@ -339,11 +272,9 @@ namespace third_year_project.Controls
             if (parent != node)
             {
                 Point p = node.getThisPoint(); //+ offset;
-                //double diff = this.TranslatePoint(p, this.GetVisualRoot() as Visual).Value.X - p.X;
 
                 p = (Point)this.TranslatePoint(p, this.GetVisualRoot() as Visual) - offset; //nullable stuff doesnt matter right?
                 Point parentPoint = (Point)this.TranslatePoint(parent.getThisPoint(), this.GetVisualRoot() as Visual) - offset;
-                //Point parentPoint = parent.getThisPoint() + offset;
 
                 setBranchColour(parent, pen);
 
@@ -354,16 +285,6 @@ namespace third_year_project.Controls
                 p = p + new Point(0, -circleRadius);
                 parentPoint = parentPoint + new Point(0, circleRadius);
                 context.DrawLine(pen, p, parentPoint);
-
-                //if (node.GetChildCount() > 0)
-                //{
-                //    Console.WriteLine("bomba");
-                //    if (node.GetChildAt(0).GetChildCount() == 0) //playy sound if we are moving across teh second layer down
-                //    {
-                //        Console.WriteLine("clart");
-                //        soundPlayer.PlayKick();
-                //    }
-                //}
             }
 
         }
@@ -402,7 +323,6 @@ namespace third_year_project.Controls
             blackPen = new Pen(Brushes.Black);
            
         }
-
         public void SetControlBackgroundBrush(IBrush? _controlBackgroundBrush)
         {
             controlBackgroundBrush = _controlBackgroundBrush;
@@ -426,7 +346,6 @@ namespace third_year_project.Controls
         {
             return children;
         }
-
         public DiagramNode GetChildAt(int index)
         {
             return children[index];
@@ -517,7 +436,6 @@ namespace third_year_project.Controls
             for (int i = 0; i < children.Count; i++)
             {
                 int endX = (int)(((i + (int)(children.Count / children[0].GetTotalRowSize())) / (children.Count + 1.0)) * width);
-                //int endX = (int)((i + howfaralong[getDepthOfSubtree()] + 0.5) * (int)((width) / (children[0].GetTotalRowSize())));
                 Point e = new Point(endX, endY);
                 context.DrawLine(blackPen, s + new Point(0, circleRadius), e + new Point(0, -circleRadius));
 
@@ -561,7 +479,7 @@ namespace third_year_project.Controls
             context.DrawText(formatted, new Point(startX - 5, startY - 15));
         }
 
-        private void setThisPoint(Point point)
+        public void setThisPoint(Point point)
         {
             thisPoint = point;
         }

@@ -20,7 +20,7 @@ namespace third_year_project.Services
             if (string.IsNullOrWhiteSpace(treeStructure))
                 return Array.Empty<int[]>();
 
-            // Find all occurrences of stuff in square brackets and then send it all out as an array
+            //find all occurrences of stuff in square brackets and then send it all out as an array
             var matches = Regex.Matches(treeStructure, @"\[(.*?)\]");
             if (matches.Count == 0)
                 return Array.Empty<int[]>();

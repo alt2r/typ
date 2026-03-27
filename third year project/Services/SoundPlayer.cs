@@ -32,7 +32,7 @@ namespace third_year_project.Services
 
         public SoundMixer soundMixer;
         public LiveSoundMixer liveSoundMixer;
-        private float noteAmplitude = 0.8f;
+        private double noteAmplitude = 0.8;
         private int noteDurationMs = 200;
         private const int SAMPLERATE = 44100;
 
@@ -101,16 +101,16 @@ namespace third_year_project.Services
             liveSoundOut.Initialize(liveSoundMixer);
             liveSoundOut.Play();
 
-            soundMixer.soundPlayed += (frequency) =>
+            //this is basically a middle man action that forwards events from sound mixer to viewmodels
+            soundMixer.soundPlayed += (frequency) => //when the sound mixer triggers its event
             {
-                soundPlayed?.Invoke(frequency); // Pass the frequency argument to the event
+                soundPlayed?.Invoke(frequency); //trigger the action event with the frequency
             };
         }
         //general idea is that only one page will be using the soundplayer at a time.
 
         public void PlayLiveNote(Note note)
         {
-            Console.WriteLine("trying to play live note ");
             liveSoundMixer.AddTone(NoteToFrequency(note), noteAmplitude, MsToSample(noteDurationMs));
         }
 
@@ -118,7 +118,6 @@ namespace third_year_project.Services
         {
             if (!IsOwner(requester))
             {
-                Console.WriteLine("An object tried to access soundplayer schedule note without being the owner");
                 return;
             }
 
@@ -136,9 +135,6 @@ namespace third_year_project.Services
         }
         public double SampleToMs(long samples)
         {
-            if (samples < 0)
-                throw new ArgumentOutOfRangeException(nameof(samples));
-
             return (double)samples * 1000.0 / SAMPLERATE;
         }
         public long GetCurrentSample()
@@ -148,6 +144,33 @@ namespace third_year_project.Services
         public DateTime getStartTime()
         {
             return soundMixer.StartTime;
+        }
+
+        public void ClearScheduledNotes(object requester)
+        {
+            if (!IsOwner(requester))
+            {
+                return;
+            }
+            soundMixer.ClearScheduledNotes();
+        }
+
+        public void SetAmplitude(object requester, double amplitude)
+        {
+            if (!IsOwner(requester))
+            {
+                return;
+            }
+            if (amplitude < 0 || amplitude > 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(amplitude));
+            }
+            noteAmplitude = amplitude;
+        }
+
+        public double GetAmplitude(object requester)
+        { //its kind of fine if non owners call this
+            return noteAmplitude;
         }
 
         public static double NoteToFrequency(Note note) //can be static since it doesnt access instance data
@@ -163,7 +186,6 @@ namespace third_year_project.Services
                 throw new ArgumentOutOfRangeException(nameof(note));
             }
             double frequency = 0;
-            //Console.WriteLine(note);
             switch (note)
             {
                 case Note.C0:
@@ -279,10 +301,8 @@ namespace third_year_project.Services
         {
             if (!IsOwner(requester))
             {
-                Console.WriteLine("An object tried to access soundplayer without being the owner");
                 return;
             }
-            Console.WriteLine("stopping");
             soundOut?.Stop();
             soundOut?.Dispose();
             soundOut = null;
